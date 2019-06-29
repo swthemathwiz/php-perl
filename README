@@ -1,0 +1,162 @@
+What is ext/perl?
+=================
+
+  This extension allows embedding of Perl Interpreter into PHP5 to:
+    * execute Perl files
+    * evaluate Perl code
+    * access values of Perl variables
+    * call Perl subroutines
+    * instantiate and manipulate of Perl objects
+
+Requirements
+============
+  PHP 5.0.0RC2 or later
+  Perl 5.8.0 or later
+
+Quick install
+=============
+
+  Step 1. Compile this extension. PHP_PREFIX and PERL_PREFIX mast point to real
+          PHP and Perl instalation prefixes.
+
+    export PHP_PREFIX="/usr"
+    export PERL_PREFIX="/usr"
+    $PHP_PREFIX/bin/phpize
+    ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
+    make  
+
+  Step 2. Install the extension (this step can require root privileges)
+
+    make install
+
+  Step 3. Add perl extension into your php.ini (this step can require root privileges)
+
+    extension=perl.so
+
+Windows Installation Notes
+==========================
+
+  Step 1. Download ActivePerl binaries for Windows from 
+          http://www.activestate.com/Products/ActivePerl/
+          and install them.
+
+  Step 2. Put this extension into corresponding PHP source tree (into ext/perl)
+
+  Step 3. Compile the extension
+
+    SET PERL_HOME=C:\perl
+    msdev perl.dsp /MAKE "perl - Win32 Release_TS"
+
+  Step 4. Copy php_perl.dll (from Release_TS) to PHP extension dir
+
+  Step 5. Add perl extension into your php.ini
+
+    extension=php_perl.dll
+
+PHP API
+=======
+
+  new Perl()
+  ----------
+    Creates perl interpreter. It allows
+
+    * reading and modifying of Perl variables
+    * calling Perl functions
+    * evaluating Perl code
+    * loading and executing exteranl Perl files
+
+    Examples:
+      $perl = new Perl();
+      var_dump($perl->x);        // print scalar Perl variable - $x
+      var_dump($perl->array->x); // print array Perl variable - @x
+      var_dump($perl->hash->x);  // print hash Perl variable - %x
+      $perl->func();             // call Perl function 'func' in void context
+      $x = $perl->func();        // call Perl function 'func' in scalar context
+      $y = $perl->array->func(); // call Perl function 'func' in array context            
+      $y = $perl->hash->func();  // call Perl function 'func' in hash context
+
+      $perl->eval('use Digest::MD5');
+      echo $perl->{'Digest::MD5::md5_hex'}('Hello');
+
+  
+  Perl->eval($perl_code)
+  ----------------------
+    Evaluates Perl code and returns result. If Perl code is invalid it will
+    throw PHP exception. 
+
+    Exampes:
+      $perl = new Perl();
+      $perl->eval('require "test.pl";');
+      echo $perl->eval($x.'+'.$y.';');
+      $perl->eval('$z='.$x.'+'.$y.';');
+
+    By default Perl code is evaluated in scalar context, but it can be 
+    evaluated in array or hash context too.
+
+    Exampes:
+      $perl = new Perl();
+      $perl->eval('("a","b","c")');                  // eval in void context
+      var_dump($perl->eval('("a","b","c")'));        // eval in scalar context
+      var_dump($perl->array->eval('("a","b","c")')); // eval in array context
+      var_dump($perl->hash->eval('("a","b","c")'));  // eval in hash context
+
+
+  Perl->require($perl_file_name)
+  ------------------------------
+    Loads and executes Perl file. It doesn't return any value. If required Perl
+    file doesn't exist or invalid it will throw PHP exception.
+
+    Examples:
+      $perl = new Perl();
+      $perl->require('test.pl');
+
+  new Perl($perl_class_name[, $constructor = "new"[, ...]])
+  -----------------------------------------------------
+    Creates an instance of Perl class through calling specified constructor
+    or "new" if constructor is not specified. Additional parameters passed
+    to Perl's constructor. The created object allows:
+
+    * reading and modifying of object properties
+    * calling methods
+    * cloning
+
+    Examples:
+      $x = new Perl("Test");
+      $y = new Perl("Test","copy",$x);
+      $z = clone $y;
+      echo $z->property;
+      echo $z->method(1,2,3);
+
+    Methods can be called in array or hash context in the same way as Perl
+    functions, but all properties are acessable directly (without array or
+    hash modifiers).
+
+    Examples:
+      $x = new Perl("Test");
+      $x->f();                  // call method "f" in void context
+      var_dump($x->f());        // call method "f" in scalar context
+      var_dump($x->array->f()); // call method "f" in array context
+      var_dump($x->hash->f());  // call method "f" in hash context
+
+
+
+Known BUGS and limitations
+==========================
+  *  Perl objects passed between Perl and PHP by reference all other data type
+     (including arrays and hashes) passed by value. So modification of Perl's
+     arrays and hashes in PHP will not have effect in Perl.
+
+     $x = $perl->array->x;
+     $x[0] = 1; // Perl's array @x still unmodifyed
+     
+     But you can use PHP references to do this. The following code works fine.
+     
+     $x = &$perl->array->x;
+     $x[0] = 1; // Modifies Perl's array @x
+
+  *  pecl/perl can't call internal Perl functions
+     (print, die, ...).
+
+This extension was testd on RedHat Linux 9.0 with PHP 5.0.0RC2-dev (non ZTS build)
+and perl-5.8.0 (installed from RPM) and on Windows 2000 with PHP-5.0.0RC2-dev
+(ZTS build) and perl-5.8.0.
