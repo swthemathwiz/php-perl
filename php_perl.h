@@ -1,6 +1,6 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 4                                                        |
+   | PHP Version 7                                                        |
    +----------------------------------------------------------------------+
    | Copyright (c) 1997-2003 The PHP Group                                |
    +----------------------------------------------------------------------+
@@ -14,7 +14,6 @@
    +----------------------------------------------------------------------+
    | Author: Dmitry Stogov <dmitry@zend.com>                              |
    +----------------------------------------------------------------------+
-   $Id: php_perl.h 329275 2013-01-23 12:23:50Z tyrael $
 */
 
 #ifndef PHP_PERL_H
@@ -22,19 +21,15 @@
 
 #include "php.h"
 
+#define PHP_PERL_VERSION "1.20.0"
+
 extern zend_module_entry perl_module_entry;
 #define phpext_perl_ptr &perl_module_entry
-
-#define PHP_PERL_VERSION "1.0.1"
 
 #ifdef PHP_WIN32
 #define PHP_PERL_API __declspec(dllexport)
 #else
 #define PHP_PERL_API
-#endif
-
-#ifdef ZTS
-#include "TSRM.h"
 #endif
 
 #endif

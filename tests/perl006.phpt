@@ -5,7 +5,9 @@ Test 6: returning hash value from eval()
 --FILE--
 <?php
 $perl = new Perl();
-var_dump($perl->eval('{"int"=>1,"double"=>3.5,"string"=>"string"};'));
+$a = $perl->eval('{"int"=>1,"double"=>3.5,"string"=>"string"};');
+ksort($a);
+var_dump($a);
 echo "ok\n";
 ?>
 --EXPECT--

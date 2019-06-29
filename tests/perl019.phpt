@@ -16,8 +16,8 @@ $perl->f();
 echo "ok\n";
 ?>
 --EXPECTF--
-Fatal error: Uncaught exception 'PerlException' with message '[perl] call error: 	(in cleanup) Bye bye! at (eval %d) line %d.
-' in %sperl019.php:%d
+Fatal error: Uncaught PerlException: [perl] call error: Bye bye! at (eval %d) line %d.
+ in %sperl019.php:%d
 Stack trace:
 #0 %sperl019.php(10): Perl->f()
 #1 {main}

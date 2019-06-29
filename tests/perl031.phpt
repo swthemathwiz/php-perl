@@ -32,10 +32,10 @@ $bar->x = 2;
 var_dump($foo);
 echo "ok\n";
 ?>
---EXPECT--
-object(Perl::Foo)#2 (1) {
+--EXPECTF--
+object(Perl::Foo)#%d (1) {
   ["bar"]=>
-  object(Perl::Bar)#3 (1) {
+  object(Perl::Bar)#%d (1) {
     ["x"]=>
     int(2)
   }

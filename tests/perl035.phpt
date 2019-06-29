@@ -1,5 +1,5 @@
 --TEST--
-Test 35: checking isset() and empty() on object properies
+Test 35: checking isset() and empty() on object properties
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

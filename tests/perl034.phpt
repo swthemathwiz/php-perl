@@ -25,8 +25,8 @@ $perl->f(new Perl('Foo'));
 var_dump($perl->var);
 echo "ok\n";
 ?>
---EXPECT--
-object(Perl::Foo)#2 (1) {
+--EXPECTF--
+object(Perl::Foo)#%d (1) {
   ["x"]=>
   int(12)
 }

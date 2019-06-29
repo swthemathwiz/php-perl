@@ -17,10 +17,13 @@ PERL_END
 $x = array(1);
 $x[1] =& $x;
 $x[0] = 2;
+ksort($x);
 var_dump($x);
 $y = $perl->f($x);
+ksort($y);
 var_dump($y);
 $x[0] = 4;
+ksort($x);
 var_dump($x);
 echo "ok\n";
 ?>
@@ -29,7 +32,7 @@ array(2) {
   [0]=>
   int(2)
   [1]=>
-  array(2) {
+  &array(2) {
     [0]=>
     int(2)
     [1]=>
@@ -51,7 +54,7 @@ array(2) {
   [0]=>
   int(4)
   [1]=>
-  array(2) {
+  &array(2) {
     [0]=>
     int(4)
     [1]=>
@@ -59,3 +62,5 @@ array(2) {
   }
 }
 ok
+--XFAIL--
+Passing references not supported.

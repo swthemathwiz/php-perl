@@ -1,5 +1,5 @@
 --TEST--
-Test 18: calling internal Perl function (not implemented by pecl/perl)
+Test 18: calling internal Perl function
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--
@@ -13,3 +13,5 @@ echo "ok\n";
 Hello
 Hello
 ok
+--XFAIL--
+Not implemented by pecl/perl

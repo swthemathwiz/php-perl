@@ -1,5 +1,5 @@
 --TEST--
-Test 36: clearing object properies with unset()
+Test 36: clearing object properties with unset()
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

@@ -14,34 +14,33 @@ package Foo;
     bless \$self, \$type;
     return \$self;
   }
+  sub dump() {
+    my \$this = shift;
+    use Data::Dumper;
+    \$Data::Dumper::Sortkeys = 1;
+    print Dumper(\$this);
+  }
 package main;
   \$x = new Foo;
   \$x->{'foo'} = \$x;
   return \$x;
 PERL_END
 );
-var_dump($x);
+# var_dump does not sort hashes
+#var_dump($x);
+$x->dump();
 $x->x = 1;
-var_dump($x);
+# var_dump does not sort hashes
+#var_dump($x);
+$x->dump();
 echo "ok\n";
 ?>
 --EXPECT--
-object(Perl::Foo)#2 (1) {
-  ["foo"]=>
-  object(Perl::Foo)#2 (1) {
-    ["foo"]=>
-    *RECURSION*
-  }
-}
-object(Perl::Foo)#2 (2) {
-  ["x"]=>
-  int(1)
-  ["foo"]=>
-  object(Perl::Foo)#2 (2) {
-    ["x"]=>
-    int(1)
-    ["foo"]=>
-    *RECURSION*
-  }
-}
+$VAR1 = bless( {
+                 'foo' => $VAR1
+               }, 'Foo' );
+$VAR1 = bless( {
+                 'foo' => $VAR1,
+                 'x' => 1
+               }, 'Foo' );
 ok

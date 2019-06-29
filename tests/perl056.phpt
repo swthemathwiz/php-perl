@@ -31,16 +31,10 @@ echo "ok\n";
 --EXPECT--
 object(Perl::Foo)#2 (1) {
   ["foo"]=>
-  object(Perl::Foo)#2 (1) {
-    ["foo"]=>
-    *RECURSION*
-  }
+  *RECURSION*
 }
 object(Perl::Foo)#2 (1) {
   ["foo"]=>
-  object(Perl::Foo)#2 (1) {
-    ["foo"]=>
-    *RECURSION*
-  }
+  *RECURSION*
 }
 ok

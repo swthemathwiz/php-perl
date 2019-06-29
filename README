@@ -1,3 +1,30 @@
+Updates
+=======
+  I have modified the original perl-1.0.1 extension source to run
+  with php 7. I have tested it with PHP 7.3.6 with Perl 5.28.2 on
+  Fedora 30. The source has been extensively modified from the PHP
+  5 extension, and I have changed the version to 1.20.0.
+
+  The primary modifications were:
+    - Adapt to the newer PHP object model.
+    - Modification of the use of binary hashes (no longer available)
+    - Deletion of the older tasking model code.
+    - General PHP 5 to 7 changes.
+    - Misc. updating of the code (4+ years of changes)
+    - Modified various tests (often due to var_dump
+      not sorting hashes consistently). Added a few tests. 
+      The tests sometimes use perl's Data::Dumper to get
+      around the lack of var_dump hash sorting.
+
+  The code is not compatible with PHP 5.
+
+  The original source was released under PHP v3.0 license and my
+  modifications are release under the same.
+
+  The source will probably not compile with PHP 7.4 currently
+  as there are several object model changes and there is no
+  overloaded function support that I can see.
+
 What is ext/perl?
 =================
 
@@ -10,8 +37,8 @@ What is ext/perl?
 
 Requirements
 ============
-  PHP 5.0.0RC2 or later
-  Perl 5.8.0 or later
+  PHP 7.3 (or so)
+  Perl 5.8.0 or later (or so)
 
 Quick install
 =============

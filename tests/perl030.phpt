@@ -15,30 +15,32 @@ package Foo;
     bless \$self, \$type;
     return \$self;
   }
+  sub dump() {
+    my \$this = shift;
+    use Data::Dumper;
+    \$Data::Dumper::Sortkeys = 1;
+    print Dumper(\$this);
+  }
 package main;
 PERL_END
 );
 $foo = new Perl('Foo');
 $foo->a1 = array("one"=>2,"two"=>1);
 $foo->a2 = array("one"=>1,"two"=>2);
-var_dump($foo);
+# var_dump does not sort hashes
+#var_dump($foo);
+$foo->dump();
 echo "ok\n";
 ?>
 --EXPECT--
-object(Perl::Foo)#2 (2) {
-  ["a2"]=>
-  array(2) {
-    ["one"]=>
-    int(1)
-    ["two"]=>
-    int(2)
-  }
-  ["a1"]=>
-  array(2) {
-    ["one"]=>
-    int(2)
-    ["two"]=>
-    int(1)
-  }
-}
+$VAR1 = bless( {
+                 'a1' => {
+                           'one' => 2,
+                           'two' => 1
+                         },
+                 'a2' => {
+                           'one' => 1,
+                           'two' => 2
+                         }
+               }, 'Foo' );
 ok

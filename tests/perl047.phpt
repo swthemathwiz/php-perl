@@ -22,13 +22,19 @@ PERL_END
 $x = new Perl('Foo');
 $i = 0;
 foreach($x as $var => $val) {
+  $name[$var] = $val;
+#  echo "$var = ";
+#  var_dump($val);
+  if (++$i > 5) exit( 'went past end' );
+}
+ksort($name);
+foreach($name as $var => $val) {
   echo "$var = ";
   var_dump($val);
-  if (++$i > 5) break;
 }
 echo "ok\n";
 ?>
 --EXPECT--
-y = int(2)
 x = int(1)
+y = int(2)
 ok

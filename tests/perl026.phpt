@@ -11,7 +11,7 @@ package Foo;
     my \$this = shift;
     my \$type = ref(\$this) || \$this;
     my \$self = {};
-    \$self->{'x'} = {"int"=>1, "flost"=>2.5, "str"=>"str"};
+    \$self->{'x'} = {"int"=>1, "float"=>2.5, "str"=>"str"};
     bless \$self, \$type;
     return \$self;
   }
@@ -19,16 +19,18 @@ package main;
 PERL_END
 );
 $foo = new Perl('Foo');
-var_dump($foo->x);
+$a = $foo->x;
+ksort($a);
+var_dump($a);
 echo "ok\n";
 ?>
 --EXPECT--
 array(3) {
-  ["str"]=>
-  string(3) "str"
+  ["float"]=>
+  float(2.5)
   ["int"]=>
   int(1)
-  ["flost"]=>
-  float(2.5)
+  ["str"]=>
+  string(3) "str"
 }
 ok

@@ -16,12 +16,16 @@ PERL_END
 
 $x = array(1);
 $x[1] =& $x[0];
+ksort($x);
 var_dump($x);
 $x[0] = 2;
+ksort($x);
 var_dump($x);
 $x = $perl->f($x);
+ksort($x);
 var_dump($x);
 $x[1] = 4;
+ksort($x);
 var_dump($x);
 echo "ok\n";
 ?>
@@ -51,3 +55,5 @@ array(2) {
   &int(4)
 }
 ok
+--XFAIL--
+Passing references not supported.

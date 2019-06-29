@@ -15,6 +15,12 @@ package Foo;
     bless \$self, \$type;
     return \$self;
   }
+  sub dump() {
+    my \$this = shift;
+    use Data::Dumper;
+    \$Data::Dumper::Sortkeys = 1;
+    print Dumper(\$this);
+  }
 package main;
 PERL_END
 );
@@ -22,16 +28,15 @@ $foo = new Perl('Foo');
 $foo->int   = 5;
 $foo->float = 2.5;
 $foo->str   = "str";
-var_dump($foo);
+# var_dump does not sort hashes
+#var_dump($foo);
+$foo->dump();
 echo "ok\n";
 ?>
 --EXPECT--
-object(Perl::Foo)#2 (3) {
-  ["float"]=>
-  float(2.5)
-  ["str"]=>
-  string(3) "str"
-  ["int"]=>
-  int(5)
-}
+$VAR1 = bless( {
+                 'float' => '2.5',
+                 'int' => 5,
+                 'str' => 'str'
+               }, 'Foo' );
 ok
