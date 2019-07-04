@@ -24,6 +24,7 @@ tests/perl*.log
 tests/perl*.out
 tests/perl*.php
 tests/perl*.sh
+tests/perl*.mem
 .libs/*
 modules/*
 perl.la
