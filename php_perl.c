@@ -118,7 +118,7 @@ typedef struct php_perl_object {
   zend_bool    remembered;     /* remembered or not */
   void        *remembered_sv;  /* the one we entered in the table */
 
-  /* N.B.: PHP7 requires at end of data (or maybe not) */
+  /* N.B.: PHP7 requires at end of data (additional data may be allocated beyond end) */
   zend_object  std;
 } php_perl_object;
 
@@ -240,7 +240,7 @@ php_perl_init( void )
     PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
     perl_parse( my_perl, xs_init, 3, embedding, (char * *)NULL );
     PerlIO_define_layer( aTHX_ & PerlIO_PHP );
-    PerlIO_apply_layers( aTHX_ PerlIO_stdout(), "w", ":PHP" );
+    PerlIO_push(aTHX_ PerlIO_stdout(), &PerlIO_PHP, "w", NULL);
 
     PERLG( perl )  = my_perl;
     zend_hash_init( &PERLG( perl_objects ), 0, NULL, NULL, 0 );
@@ -258,6 +258,7 @@ php_perl_destroy( void )
 
   if( my_perl != NULL ) {
     zend_hash_destroy( &PERLG( perl_objects ) );
+    PerlIO_pop(aTHX_ PerlIO_stdout());
     perl_destruct( my_perl );
     perl_free( my_perl );
     PERLG( perl ) = NULL;
@@ -1313,7 +1314,7 @@ php_perl_has_property( zval *object, zval *member_val, int has_set_exists, void 
   zend_string             *member    = zval_get_string(member_val);
 
   TRACE_MSG2( "  has_property '%s'", ZSTR_VAL( member ) );
-  TRACE_MSG2( "  has_property - check empty=%d", (int)check_empty );
+  TRACE_MSG2( "  has_property - has_set_exists=%d", (int)has_set_exists );
   TRACE_MSG2( "  has_property - " ZEND_ADDR_FMT " object", (zend_ulong)object );
   TRACE_MSG2( "  has_property - " ZEND_ADDR_FMT " sv", (zend_ulong)sv );
 
@@ -1493,7 +1494,7 @@ php_perl_get_constructor( zend_object *object )
   if( f )
     return f;
 
-  f                            = ecalloc( sizeof( zend_internal_function ), 1 );
+  f                            = ecalloc( 1, sizeof( zend_internal_function ) );
   f->type                      = ZEND_INTERNAL_FUNCTION;
   f->common.num_args           = 2;
   f->common.required_num_args  = 0;
@@ -1512,7 +1513,7 @@ php_perl_get_method( zend_object * *object_ptr, zend_string *method, const zval 
   php_perl_object *obj = php_perl_from_zend( *object_ptr );
 
   if( obj->sv == NULL ) {
-    zend_function *f = zend_get_std_object_handlers()->get_method( object_ptr, method, NULL );
+    zend_function *f = zend_get_std_object_handlers()->get_method( object_ptr, method, key );
     if( f )
       return f;
   }
@@ -1521,7 +1522,7 @@ php_perl_get_method( zend_object * *object_ptr, zend_string *method, const zval 
   /* passed in EX(This). The temporary means that the function_name is released by */
   /* the zend engine. Nothing else appears to be checked. */
   {
-    zend_internal_function *f = ecalloc( sizeof( zend_internal_function ), 1 );
+    zend_internal_function *f = ecalloc( 1, sizeof( zend_internal_function ) );
 
     f->type          = ZEND_OVERLOADED_FUNCTION_TEMPORARY;
     f->function_name = zend_string_dup( method, 0 );
@@ -1683,6 +1684,9 @@ php_perl_dtor_obj( zend_object *object )
   TRACE_ASSERT( object != NULL );
   TRACE_MSG2( "dtor " ZEND_ADDR_FMT " (zend)", (zend_ulong)object );
 
+  /* Call the userland destructor (if it exists) */
+  zend_objects_destroy_object( object ); 
+
   /* Removing properties */
   if( obj->properties ) {
     TRACE_MSG2( "free " ZEND_ADDR_FMT " properties", (zend_ulong)obj );
@@ -1704,8 +1708,6 @@ php_perl_dtor_obj( zend_object *object )
     }
     obj->sv = NULL;
   }
-
-  zend_object_std_dtor( object );
 } /* php_perl_dtor_obj */
 
 /* Deallocate storage */
@@ -1718,7 +1720,7 @@ php_perl_free_obj( zend_object *object )
 
   TRACE_MSG2( "free " ZEND_ADDR_FMT " (zend)", (zend_ulong)object );
 
-  efree( php_perl_from_zend( object ) );
+  zend_object_std_dtor( object );
 } /* php_perl_free_obj */
 
 /* Makes a copy of overloaded perl object.
@@ -1829,11 +1831,7 @@ php_perl_iterator_dtor( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_dtor" );
 
-  zval *object = (zval *)( Z_PTR( iterator->data ) );
-
-  Z_DELREF_P( object );
-  zend_iterator_dtor( iterator );
-  efree( iterator );
+  zval_ptr_dtor(&iterator->data);
 } /* php_perl_iterator_dtor */
 
 static int
@@ -1841,8 +1839,7 @@ php_perl_iterator_valid( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_valid" );
 
-  zval            *object = (zval *)( Z_PTR( iterator->data ) );
-  php_perl_object *obj    = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
   return ( obj->properties != NULL &&
            zend_hash_get_current_data( obj->properties ) != NULL ) ? SUCCESS : FAILURE;
@@ -1853,8 +1850,7 @@ php_perl_iterator_current_data( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_current_data" );
 
-  zval            *object = (zval *)( Z_PTR( iterator->data ) );
-  php_perl_object *obj    = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
   return obj->properties ? zend_hash_get_current_data( obj->properties ) : NULL;
 } /* php_perl_iterator_current_data */
@@ -1864,8 +1860,7 @@ php_perl_iterator_current_key( zend_object_iterator *iterator, zval *key )
 {
   TRACE_SUB( "php_perl_iterator_current_key" );
 
-  zval            *object = (zval *)( Z_PTR( iterator->data ) );
-  php_perl_object *obj    = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
   if( obj->properties )
     zend_hash_get_current_key_zval( obj->properties, key );
@@ -1876,8 +1871,7 @@ php_perl_iterator_move_forward( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_move_forward" );
 
-  zval            *object = (zval *)( Z_PTR( iterator->data ) );
-  php_perl_object *obj    = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
   if( obj->properties )
     zend_hash_move_forward( obj->properties );
@@ -1888,8 +1882,7 @@ php_perl_iterator_rewind( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_rewind" );
 
-  zval            *object = (zval *)( Z_PTR( iterator->data ) );
-  php_perl_object *obj    = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
   if( obj->properties ) {
     /* removing properties */
@@ -1898,7 +1891,7 @@ php_perl_iterator_rewind( zend_object_iterator *iterator )
     obj->properties = NULL;
   }
 
-  php_perl_get_properties( object );
+  php_perl_get_properties( &iterator->data );
 
   if( obj->properties )
     zend_hash_internal_pointer_reset( obj->properties );
@@ -1911,6 +1904,7 @@ static zend_object_iterator_funcs php_perl_iterator_funcs = {
   php_perl_iterator_current_key,
   php_perl_iterator_move_forward,
   php_perl_iterator_rewind,
+  NULL
 };
 
 static zend_object_iterator *
@@ -1922,7 +1916,7 @@ php_perl_get_iterator( zend_class_entry *ce, zval *object, int by_ref )
   zend_iterator_init( iterator );
 
   Z_ADDREF_P( object );
-  ZVAL_PTR( &iterator->data, (void *)object );
+  ZVAL_OBJ( &iterator->data, Z_OBJ_P(object) );
   iterator->funcs = &php_perl_iterator_funcs;
 
   return iterator;
