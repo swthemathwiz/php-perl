@@ -16,6 +16,8 @@ if test "$PHP_PERL" != "no"; then
     AC_MSG_ERROR([Cannot find perl executable under $PHP_PERL.])
   fi
 
+  $PERL_DIR/bin/perl -MExtUtils::Embed -e 'exit 0' || AC_MSG_ERROR([Cannot use perl ExtUtils::Embed package])
+
   EXTRA_CFLAGS=`$PERL_DIR/bin/perl -MExtUtils::Embed -e ccopts`
   EXTRA_LDFLAGS=`$PERL_DIR/bin/perl -MExtUtils::Embed -e ldopts`
 
