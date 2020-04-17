@@ -23,10 +23,6 @@ Updates
   The original source was released under PHP v3.0 license and my
   modifications are release under the same.
 
-  The source will probably not compile with PHP 7.4 currently
-  as there are several object model changes and there is no
-  overloaded function support apparent.
-
 What is ext/perl?
 =================
 
@@ -39,8 +35,8 @@ What is ext/perl?
 
 Requirements
 ============
-  PHP 7.3 (or so)
-  Perl 5.8.0 or later (or so)
+  PHP 7.3 or 7.4 (or so)
+  Perl 5.8.0 or later (or so) with module ExtUtils::Embed
 
 Quick install
 =============
@@ -176,7 +172,7 @@ Known BUGS and limitations
      arrays and hashes in PHP will not have effect in Perl.
 
      $x = $perl->array->x;
-     $x[0] = 1; // Perl's array @x still unmodifyed
+     $x[0] = 1; // Perl's array @x still unmodified
      
      But you can use PHP references to do this. The following code works fine.
      
