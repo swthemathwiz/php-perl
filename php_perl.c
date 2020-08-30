@@ -25,17 +25,21 @@
 #endif
 
 #if 0
-#define TRACE_SUB( S )      int _trace_rc ZEND_ATTRIBUTE_UNUSED = fprintf( stderr, "%s\n", ( S ) ) | fflush( stderr );
-#define TRACE_MSG( S )      do { fprintf( stderr, "%s\n", ( S ) ); fflush( stderr ); } while( 0 )
-#define TRACE_MSG2( F, V )  do { fprintf( stderr, F "\n", ( V ) ); fflush( stderr ); } while( 0 ) 
-#define TRACE_SV_DUMP( SV ) do { sv_dump( ( SV ) ); } while( 0 )
-#define TRACE_ASSERT( C )   do { if( !( C ) ) abort(); } while( 0 )
+#define TRACE_SUB( S )           int _trace_rc ZEND_ATTRIBUTE_UNUSED = fprintf( stderr, "%s\n", ( S ) ) | fflush( stderr );
+#define TRACE_MSG( S )           do { fprintf( stderr, "%s\n", ( S ) ); fflush( stderr ); } while( 0 )
+#define TRACE_MSG2( F, V )       do { fprintf( stderr, F "\n", ( V ) ); fflush( stderr ); } while( 0 ) 
+#define TRACE_MSG3( F, V1, V2 )  do { fprintf( stderr, F "\n", ( V1 ), ( V2 ) ); fflush( stderr ); } while( 0 ) 
+#define TRACE_SV_DUMP( SV )      do { sv_dump( ( SV ) ); } while( 0 )
+#define TRACE_ASSERT( C )        do { if( !( C ) ) abort(); } while( 0 )
+#define TEST_START_STOP
 #else
 #define TRACE_SUB( S )
 #define TRACE_MSG( S )
 #define TRACE_MSG2( F, V )
+#define TRACE_MSG3( F, V1, V2 )
 #define TRACE_SV_DUMP( SV )
 #define TRACE_ASSERT( C )
+#undef  TEST_START_STOP
 #endif /* if 0 */
 
 #if HAVE_PERL
@@ -45,6 +49,15 @@
 #include <perliol.h>    /* from the Perl distribution */
 #include <perlapi.h>    /* from the Perl distribution */
 #include <XSUB.h>       /* from the Perl distribution */
+
+/* Shamelessy take from perl/core/vutil.h */
+#define PERL_VERSION_DECIMAL(r,v,s) (r*1000000 + v*1000 + s)
+#define PERL_DECIMAL_VERSION \
+        PERL_VERSION_DECIMAL(PERL_REVISION,PERL_VERSION,PERL_SUBVERSION)
+#define PERL_VERSION_LT(r,v,s) \
+        (PERL_DECIMAL_VERSION < PERL_VERSION_DECIMAL(r,v,s))
+#define PERL_VERSION_GE(r,v,s) \
+        (PERL_DECIMAL_VERSION >= PERL_VERSION_DECIMAL(r,v,s))
 
 #undef END_EXTERN_C     /* bypass macros redeclaration warning */
 
@@ -63,19 +76,39 @@
 ZEND_BEGIN_MODULE_GLOBALS( perl )
   PerlInterpreter *perl;
   HashTable        perl_objects; /* this hash is used to make one to one mapping between Perl and PHP objects */
+  zend_bool        perl_sys_inited; /* if this module has been sys inited */
 ZEND_END_MODULE_GLOBALS( perl )
 
 ZEND_DECLARE_MODULE_GLOBALS( perl );
 static PHP_GINIT_FUNCTION( perl );
+static PHP_GSHUTDOWN_FUNCTION( perl );
 
 #define PERLG(v) ZEND_MODULE_GLOBALS_ACCESSOR( perl, v )
+
+#ifdef TEST_START_STOP
+PHP_FUNCTION( perl_start );
+PHP_FUNCTION( perl_stop );
+
+static const zend_function_entry perl_static_functions[] = {
+  PHP_FE( perl_start, NULL )
+  PHP_FE( perl_stop, NULL )
+  PHP_FE_END
+};
+#endif
 
 PHP_METHOD( Perl, eval );
 PHP_METHOD( Perl, require );
 
-static zend_function_entry perl_functions[] = {
-  PHP_ME( Perl, eval,    NULL, ZEND_ACC_PUBLIC )
-  PHP_ME( Perl, require, NULL, ZEND_ACC_PUBLIC )
+ZEND_BEGIN_ARG_INFO(arginfo_perl_eval, 0)
+        ZEND_ARG_INFO(0, perl_code)
+ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_INFO(arginfo_perl_require, 0)
+        ZEND_ARG_INFO(0, perl_filename)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry perl_functions[] = {
+  PHP_ME( Perl, eval,    arginfo_perl_eval,    ZEND_ACC_PUBLIC )
+  PHP_ME( Perl, require, arginfo_perl_require, ZEND_ACC_PUBLIC )
   PHP_FE_END
 };
 
@@ -247,16 +280,27 @@ php_perl_init( void )
 
     char *embedding[] = { "", "-e", "0" };
 
-    my_perl        = perl_alloc();
+    if( !PERLG( perl_sys_inited ) ) {
+      PERL_SYS_INIT3((int *)NULL,(char ***)NULL,(char ***)NULL);
+      PERLG( perl_sys_inited ) = TRUE;
+    }
+    my_perl = perl_alloc();
+
+    PL_perl_destruct_level = 1;
     perl_construct( my_perl );
+
+    PL_origalen = 1; /* don't let $0 assignment update the proctitle or embedding[0] */
+    perl_parse( my_perl, xs_init, sizeof(embedding)/sizeof(embedding[0]), embedding, (char * *)NULL );
     PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
-    perl_parse( my_perl, xs_init, 3, embedding, (char * *)NULL );
+
     PerlIO_define_layer( aTHX_ & PerlIO_PHP );
     PerlIO_push(aTHX_ PerlIO_stdout(), &PerlIO_PHP, "w", NULL);
 
+    TRACE_MSG2( "  perl interpretor " ZEND_ADDR_FMT " created", (zend_ulong)my_perl );
     PERLG( perl )  = my_perl;
     zend_hash_init( &PERLG( perl_objects ), 0, NULL, NULL, 0 );
   }
+
   return my_perl;
 } /* php_perl_init */
 
@@ -269,11 +313,21 @@ php_perl_destroy( void )
   PerlInterpreter *my_perl = PERLG( perl );
 
   if( my_perl != NULL ) {
-    zend_hash_destroy( &PERLG( perl_objects ) );
+    PerlIO_flush( PerlIO_stdout() );
     PerlIO_pop(aTHX_ PerlIO_stdout());
+
+    PL_perl_destruct_level = 1;
     perl_destruct( my_perl );
     perl_free( my_perl );
+
+    TRACE_MSG2( "  perl interpretor " ZEND_ADDR_FMT " freed", (zend_ulong)my_perl );
+    zend_hash_destroy( &PERLG( perl_objects ) );
     PERLG( perl ) = NULL;
+
+#if PERL_VERSION_LT(5,32,0) && PERL_VERSION_GE(5,28,0)
+    /* Refer to discussion here: https://github.com/Perl/perl5/issues/17154 */
+    PL_InBitmap = NULL;
+#endif
   }
 } /* php_perl_destroy */
 
@@ -283,18 +337,19 @@ binary_hash_add( HashTable *hash, const void *key, void *data )
   TRACE_SUB( "binary_hash_add" );
 
   if( sizeof( zend_ulong ) >= sizeof( void * ) ) {
-    TRACE_MSG2( "  key = " ZEND_ADDR_FMT, (size_t)key );
+    TRACE_MSG3( "  key = " ZEND_ADDR_FMT " <-> " ZEND_ADDR_FMT, (size_t)key, (size_t)data );
     zend_hash_index_add_ptr( hash, (zend_ulong)key, data );
   }
   else {
     char key_str[64 + 1];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
-    TRACE_MSG2( "  key = %s", key_str );
+    TRACE_MSG3( "  key = %s <-> " ZEND_ADDR_FMT, key_str, (size_t)data );
 
     zend_hash_str_add_ptr( hash, key_str, strlen( key_str ), data );
   }
 } /* binary_hash_add */
 
+/* Remembers mapping between Perl (SV) and PHP object (zend_object) */
 static void
 binary_hash_del( HashTable *hash, const void *key )
 {
@@ -319,18 +374,18 @@ binary_hash_find( HashTable *hash, const void *key, void * *data )
 
   if( sizeof( zend_ulong ) >= sizeof( void * ) ) {
     *data = zend_hash_index_find_ptr( hash, (zend_ulong)key );
+    TRACE_MSG3( "  key = " ZEND_ADDR_FMT " %s", (size_t)key, ( *data == NULL ) ? "not found" : "found" );
   }
   else {
     char key_str[64 + 1];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
     *data = zend_hash_str_find_ptr( hash, key_str, strlen( key_str ) );
+    TRACE_MSG3( "  key = %s %s", key_str, ( *data == NULL ) ? "not found" : "found" );
   }
 
-  TRACE_MSG2( "  key = %s", ( *data == NULL ) ? "not found" : "found" );
   return ( *data == NULL ) ? FAILURE : SUCCESS;
 } /* binary_hash_find */
 
-/* Remembers mapping between Perl (SV) and PHP object (zend_object) */
 static void
 php_perl_remember_object( zend_object *object )
 {
@@ -1985,9 +2040,18 @@ PHP_GINIT_FUNCTION( perl ) {
   TRACE_SUB( "PHP_GINIT_FUNCTION" );
 #if defined(COMPILE_DL_PERL) && defined(ZTS)
   ZEND_TSRMLS_CACHE_UPDATE();
-#endif
-  perl_globals->perl = NULL;
+#endif 
+  ZEND_SECURE_ZERO(perl_globals, sizeof(*perl_globals));
 } /* PHP_GINIT_FUNCTION */
+
+static
+PHP_GSHUTDOWN_FUNCTION( perl ) {
+  TRACE_SUB( "PHP_GSHUTDOWN_FUNCTION" );
+  if( perl_globals->perl_sys_inited ) {
+    perl_globals->perl_sys_inited = FALSE;
+    PERL_SYS_TERM();
+  }
+} /* PHP_GSHUTDOWN_FUNCTION */
 
 PHP_MINIT_FUNCTION( perl ){
   TRACE_SUB( "PHP_MINIT_FUNCTION" );
@@ -2074,6 +2138,8 @@ PHP_METHOD( Perl, require ){
   size_t perl_filename_len;
 
   if( zend_parse_parameters( EX_NUM_ARGS(), "s", &perl_filename, &perl_filename_len ) != FAILURE ) {
+    TRACE_MSG2( "  requiring '%s'", perl_filename );
+
     (void) php_perl_init();
 
     require_pv( perl_filename );
@@ -2082,6 +2148,7 @@ PHP_METHOD( Perl, require ){
       zend_throw_exception_ex( php_perl_exception_ce, 0, "[perl] require error: %s", SvPV( ERRSV, na ) );
     }
   }
+  TRACE_MSG( "Perl::require done" );
 } /* Perl::require */
 
 /* perl_eval($perl_code)
@@ -2093,10 +2160,12 @@ PHP_METHOD( Perl, eval ){
   char                    *perl_code;
   size_t                   perl_code_len;
 
-  (void) php_perl_init();
-
   if( zend_parse_parameters( EX_NUM_ARGS(), "s", &perl_code, &perl_code_len ) != FAILURE ) {
     SV *sv;
+    (void) php_perl_init();
+
+    TRACE_MSG2( "  evaluating '%s'", perl_code );
+
     dSP;
     sv = newSVpv( perl_code, perl_code_len );
     if( USED_RET() ) {
@@ -2159,10 +2228,26 @@ PHP_METHOD( Perl, eval ){
   TRACE_MSG( "Perl::eval done" );
 } /* Perl::eval */
 
+#ifdef TEST_START_STOP
+PHP_FUNCTION( perl_start ){
+  TRACE_SUB( "PHP_METHOD: perl_start" )
+  (void) php_perl_init();
+} /* perl_start */
+
+PHP_FUNCTION( perl_stop ){
+  TRACE_SUB( "PHP_FUNCTION: perl_stop" )
+  (void) php_perl_destroy();
+} /* perl_stop */
+#endif
+
 zend_module_entry perl_module_entry = {
   STANDARD_MODULE_HEADER,
   "perl",
+#ifdef TEST_START_STOP
+  perl_static_functions,
+#else
   NULL,
+#endif
   PHP_MINIT( perl ),
   PHP_MSHUTDOWN( perl ),
   NULL,
@@ -2171,7 +2256,7 @@ zend_module_entry perl_module_entry = {
   PHP_PERL_VERSION,
   PHP_MODULE_GLOBALS(perl),
   PHP_GINIT(perl),
-  NULL,
+  PHP_GSHUTDOWN(perl),
   NULL,
   STANDARD_MODULE_PROPERTIES_EX
 };
