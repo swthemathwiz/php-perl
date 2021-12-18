@@ -1,5 +1,8 @@
-Updates
-=======
+PHP Perl Extension (Updated for PHP7)
+=====================================
+
+About the Updates
+=================
 I have modified the original perl-1.0.1 extension source to run
 with PHP 7. I have tested it with PHP 7.3.6 with Perl 5.28.2 on
 Fedora 30. The source has been extensively modified from the PHP
@@ -24,7 +27,7 @@ The primary modifications were:
 The original source was released under PHP v3.0 license and my
 modifications are released under the same.
 
-What is the PHP/Perl Extension?
+What is the PHP Perl Extension?
 ===============================
 
 This extension allows embedding of Perl Interpreter into PHP7 to:
