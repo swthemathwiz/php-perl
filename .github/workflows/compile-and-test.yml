@@ -16,7 +16,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Install PHP and Perl Development
       run: |
-        sudo apt-get install php-devel perl-devel
+        sudo apt-get install php7.4-dev libperl-dev
     - name: Establish PHP and Perl Versions
       run: |
         php -v
