@@ -1,0 +1,36 @@
+name: Compile and Test
+
+on:
+  workflow_dispatch:
+   inputs:
+      run_tests:
+        description: 'Run Tests'
+        type: boolean
+        default: true
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install PHP and Perl Development
+      run: |
+        sudo apt-get install php-devel perl-devel
+    - name: Establish PHP and Perl Versions
+        php -v
+        phpize --version
+        perl -v
+    - name: Configure PHP Perl Extension
+      run: |
+        export PHP_PREFIX="/usr"
+        export PERL_PREFIX="/usr"
+        $PHP_PREFIX/bin/phpize
+        ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
+    - name: Build
+      run: make
+    - name: Test Extension
+      if: ${{ github.event.inputs.run_tests == 'true' }}
+      run: make test
