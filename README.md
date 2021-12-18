@@ -1,6 +1,17 @@
 PHP Perl Extension (Updated for PHP7)
 =====================================
 
+What is the PHP Perl Extension?
+===============================
+
+This extension allows embedding of Perl Interpreter into PHP7 to:
+
+  * execute Perl files
+  * evaluate Perl code
+  * access values of Perl variables
+  * call Perl subroutines
+  * instantiate and manipulate of Perl objects
+
 About the Updates
 =================
 I have modified the original perl-1.0.1 extension source to run
@@ -27,27 +38,16 @@ The primary modifications were:
 The original source was released under PHP v3.0 license and my
 modifications are released under the same.
 
-What is the PHP Perl Extension?
-===============================
-
-This extension allows embedding of Perl Interpreter into PHP7 to:
-
-  * execute Perl files
-  * evaluate Perl code
-  * access values of Perl variables
-  * call Perl subroutines
-  * instantiate and manipulate of Perl objects
-
 Requirements
 ============
-  - PHP 7.3 or 7.4 (or so)
+  - PHP 7.3 or 7.4 or later (or so)
   - Perl 5.8.0 or later (or so) with module ExtUtils::Embed
 
-Quick install
+Quick Install
 =============
 
 Step 1. Compile this extension. PHP_PREFIX and PERL_PREFIX must point to real
-PHP and Perl installation prefixes:
+        PHP and Perl installation prefixes:
 ```sh
         export PHP_PREFIX="/usr"
         export PERL_PREFIX="/usr"
@@ -68,7 +68,7 @@ Windows Installation Notes
 ==========================
 
 Step 1. Download ActivePerl binaries for Windows from [ActiveState](http://www.activestate.com/products/perl/)
-and install them.
+        and install them.
 
 Step 2. Put this extension into corresponding PHP source tree (into ext/perl)
 
