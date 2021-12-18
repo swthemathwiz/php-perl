@@ -3,7 +3,7 @@ name: Compile and Test
 on:
   workflow_dispatch:
     inputs:
-      run_tests:
+      runtests:
         description: 'Run Tests'
         type: boolean
         default: true
@@ -32,5 +32,5 @@ jobs:
     - name: Build
       run: make
     - name: Test Extension
-      if: ${{ github.event.inputs.run_tests == 'true' }}
+      if: ${{ github.event.inputs.runtests == 'true' }}
       run: make test
