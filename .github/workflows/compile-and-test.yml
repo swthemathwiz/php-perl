@@ -2,10 +2,12 @@ name: Compile and Test
 
 on:
   workflow_dispatch:
-    description: 'Run Tests'
-    type: boolean
-    default: true
-    required: true
+    inputs:
+      runtests:
+        description: 'Run Tests'
+        type: boolean
+        default: true
+        required: true
 
 jobs:
   build:
