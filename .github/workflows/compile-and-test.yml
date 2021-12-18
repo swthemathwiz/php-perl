@@ -9,7 +9,7 @@ on:
         default: true
         required: true
       runvalgrind:
-        description: 'Run Test with Memory Check (valgrind)'
+        description: 'Run Tests with Memory Check (valgrind)'
         type: boolean
         default: true
         required: true
