@@ -52,7 +52,7 @@ jobs:
     - name: Install valgrind
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
-        sudo apt-get valgrind
+        sudo apt-get install valgrind
         valgrind --version
     - name: Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
