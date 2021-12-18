@@ -2,11 +2,15 @@ name: Compile and Test
 
 on:
   workflow_dispatch:
+    description: 'Run Tests'
+    type: boolean
+    default: true
+    required: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -14,6 +18,7 @@ jobs:
       run: |
         sudo apt-get install php-devel perl-devel
     - name: Establish PHP and Perl Versions
+      run: |
         php -v
         phpize --version
         perl -v
@@ -26,4 +31,5 @@ jobs:
     - name: Build
       run: make
     - name: Test Extension
+      if: ${{ github.event.inputs.runtests == 'true' }}
       run: make test
