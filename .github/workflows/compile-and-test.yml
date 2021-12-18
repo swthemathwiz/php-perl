@@ -42,7 +42,7 @@ jobs:
         $PHP_PREFIX/bin/phpize
         ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
         # Non-interactive run-tests
-        perl -p 's/(\/run-tests\.php )/$1-q /' Makefile
+        perl -p -e 's/(\/run-tests\.php )/$1-q /' Makefile
     - name: Build
       run: make
     - name: Test Extension for Functionality
@@ -52,5 +52,5 @@ jobs:
     - name: Test Extension for Memory Leaks
       run: |
         # Memory checking run-tests.php
-        perl -p 's/(\/run-tests\.php )/$1-m /' Makefile
+        perl -p -e 's/(\/run-tests\.php )/$1-m /' Makefile
         make test
