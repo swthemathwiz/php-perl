@@ -11,7 +11,7 @@ on:
       runvalgrind:
         description: 'Run Tests with Memory Check'
         type: boolean
-        default: true
+        default: false
         required: true
 
 jobs:
