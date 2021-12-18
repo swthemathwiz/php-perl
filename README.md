@@ -16,7 +16,7 @@ The primary modifications were:
   - Miscellaneous updating of the code (4+ years of changes).
   - Modify various tests primarily due to var_dump
       not sorting hashes consistently. Added a few tests.
-      The tests sometime use perl's Data::Dumper to get
+      The tests sometime use Perl's Data::Dumper to get
       around the lack of var_dump hash sorting. Converted
       about 4 tests to XFAIL (known limitations).
   - N.B.: The code is no longer compatible with PHP 5.
@@ -24,8 +24,8 @@ The primary modifications were:
 The original source was released under PHP v3.0 license and my
 modifications are released under the same.
 
-What is ext/perl?
-=================
+What is the PHP/Perl Extension?
+===============================
 
 This extension allows embedding of Perl Interpreter into PHP7 to:
 
@@ -56,7 +56,7 @@ Step 2. Install the extension (this step can require root privileges):
 ```sh
         make install
 ```
-Step 3. Add perl extension into your php.ini (this step can require root privileges)
+Step 3. Add Perl extension into your php.ini (this step can require root privileges)
 ```
         extension=perl.so
 ```
@@ -76,7 +76,7 @@ Step 3. Compile the extension
 ```
 Step 4. Copy php_perl.dll (from Release_TS) to PHP extension dir
 
-Step 5. Add perl extension into your php.ini
+Step 5. Add Perl extension into your php.ini
 ```
         extension=php_perl.dll
 ```
