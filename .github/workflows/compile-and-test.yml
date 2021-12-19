@@ -67,9 +67,10 @@ jobs:
     - name: Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
+        export PHP_BIN="/usr/bin/php${{ github.event.inputs.phpversion }}"
         # Suppress this weird PHP thing...
-        printf "{\n PHP's weird string comparison\n Memcheck:Cond\n fun:zend_string_equal_val\n obj:/usr/bin/php${{ github.event.inputs.phpversion }}\n}\n" > php.supp
-        printf "{\n PHP's print info scandir interaction\n Memcheck:Cond\n obj:/usr/bin/php${{ github.event.inputs.phpversion }}\n fun:__scandir64_tail\n fun:php_print_info\n}" >> php.supp
+        printf "{\n PHP's weird string comparison\n Memcheck:Cond\n fun:zend_string_equal_val\n obj:$PHP_BIN\n}\n" > php.supp
+        printf "{\n PHP's print info scandir interaction\n Memcheck:Cond\n obj:$PHP_BIN\n fun:__scandir64_tail\n fun:php_print_info\n}" >> php.supp
         echo "php.supp" && cat php.supp
         echo "--suppressions=$PWD/php.supp" > ~/.valgrindrc
         # Memory checking run-tests.php
