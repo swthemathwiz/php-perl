@@ -44,7 +44,7 @@ jobs:
       run: |
         php -v
         phpize --version
-        perl -v
+        perl -v | head -n 2
     - name: Configure PHP Perl Extension
       run: |
         export PHP_PREFIX="/usr"
