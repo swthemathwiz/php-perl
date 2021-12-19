@@ -64,7 +64,7 @@ jobs:
     - name: Install valgrind
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
-        sudo apt-get -q install valgrind
+        sudo apt-get install -qq valgrind
         valgrind --version
     - name: Setup Memory Check Suppression File
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
