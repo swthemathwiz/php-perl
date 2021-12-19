@@ -32,8 +32,9 @@ jobs:
       uses: actions/checkout@v2
     - name: Install PHP and Perl Development
       env:
-        PHP_VERSION="${{ github.event.inputs.phpversion }}"
+        PHP_VERSION: "${{ github.event.inputs.phpversion }}"
       run: |
+        sudo apt-get install "php$PHP_VERSION" "php$PHP_VERSION-dev" libperl-dev 
         sudo update-alternatives --set php "/usr/bin/php$PHP_VERSION"
         sudo update-alternatives --set phar "/usr/bin/phar$PHP_VERSION"
         sudo update-alternatives --set phar.phar "/usr/bin/phar.phar$PHP_VERSION"
