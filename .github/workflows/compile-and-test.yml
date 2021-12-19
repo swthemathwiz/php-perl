@@ -66,6 +66,28 @@ jobs:
       run: |
         sudo apt-get install valgrind
         valgrind --version
+    - name: Setup Memory Check Suppression File
+      env:
+        PHP_BIN: "/usr/bin/php${{ github.event.inputs.phpversion }}"
+      run: |
+        # Suppress these weird PHP things...
+        cat << EOF >php_perl.supp 
+        {
+          PHP's weird string comparison
+          Memcheck:Cond
+          fun:zend_string_equal_val
+          obj:$PHP_BIN
+        }
+        {
+          PHP's print info scandir interaction
+          Memcheck:Cond
+          obj:$PHP_BIN
+          fun:__scandir64_tail
+          ...
+          fun:php_print_info
+        }
+        EOF
+        echo "Note: Suppressing the following Memory Check Errors" && cat php_perl.supp
     - name: Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       env:
