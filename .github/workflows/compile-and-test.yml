@@ -67,6 +67,11 @@ jobs:
     - name: Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
+        # Suppress this...
+        echo "{\n PHP's weird string comparison\n Memcheck:Cond\n fun:zend_string_equal_val\n obj:/usr/bin/php\n}" > php.supp
+        echo "--suppressions=php.supp" > .valgrindrc
+        echo "php.supp" && cat php.supp
+        echo ".valgrindrc" && cat .valgrindrc
         # Memory checking run-tests.php
         perl -pi -e 's/(\/run-tests\.php )/$1-m /' Makefile
         make test
