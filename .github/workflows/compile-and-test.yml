@@ -69,6 +69,8 @@ jobs:
       run: |
         # Suppress this weird PHP thing...
         printf "{\n PHP's weird string comparison\n Memcheck:Cond\n fun:zend_string_equal_val\n obj:/usr/bin/php${{ github.event.inputs.phpversion }}\n}\n" > php.supp
+        printf "{\n PHP's print info scandir interaction\n Memcheck:Cond\n fun:__scandir64_tail\n fun:php_print_info\n}" >> php.supp
+        echo "php.supp" && cat php.supp
         echo "--suppressions=$PWD/php.supp" > ~/.valgrindrc
         # Memory checking run-tests.php
         perl -pi -e 's/(\/run-tests\.php )/$1-m /' Makefile
