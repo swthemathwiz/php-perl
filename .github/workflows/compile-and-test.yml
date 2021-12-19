@@ -68,11 +68,12 @@ jobs:
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
         export PHP_BIN="/usr/bin/php${{ github.event.inputs.phpversion }}"
-        # Suppress this weird PHP thing...
-        printf "{\n PHP's weird string comparison\n Memcheck:Cond\n fun:zend_string_equal_val\n obj:$PHP_BIN\n}\n" > php.supp
-        printf "{\n PHP's print info scandir interaction\n Memcheck:Cond\n obj:$PHP_BIN\n fun:__scandir64_tail\n ...\n fun:php_print_info\n}" >> php.supp
-        echo "php.supp" && cat php.supp
-        echo "--suppressions=$PWD/php.supp" > ~/.valgrindrc
+        # Suppress these weird PHP things...
+        printf "{\n PHP's weird string comparison\n Memcheck:Cond\n fun:zend_string_equal_val\n obj:$PHP_BIN\n}\n" > php_perl.supp
+        printf "{\n PHP's print info scandir interaction\n Memcheck:Cond\n obj:$PHP_BIN\n fun:__scandir64_tail\n ...\n fun:php_print_info\n}" >> php_perl.supp
+        echo "Note: Suppressing the following Memory Check Errors" && cat php_perl.supp
+        echo "--suppressions=$PWD/php_perl.supp" > ~/.valgrindrc
         # Memory checking run-tests.php
         perl -pi -e 's/(\/run-tests\.php )/$1-m /' Makefile
-        make test || cat tests/perl075.mem
+        # Run the tests
+        make test
