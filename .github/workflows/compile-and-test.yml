@@ -72,4 +72,4 @@ jobs:
         echo "--suppressions=$PWD/php.supp" > ~/.valgrindrc
         # Memory checking run-tests.php
         perl -pi -e 's/(\/run-tests\.php )/$1-m /' Makefile
-        make test || cat tests/test075.mem
+        make test || cat tests/perl075.mem
