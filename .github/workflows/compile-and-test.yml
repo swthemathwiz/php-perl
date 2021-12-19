@@ -47,8 +47,8 @@ jobs:
         perl -v | head -n 2
     - name: Configure PHP Perl Extension
       env:
-        PHP_PREFIX="/usr"
-        PERL_PREFIX="/usr"
+        PHP_PREFIX: "/usr"
+        PERL_PREFIX: "/usr"
       run: |
         $PHP_PREFIX/bin/phpize
         ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
@@ -68,7 +68,7 @@ jobs:
     - name: Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       env:
-        PHP_BIN="/usr/bin/php${{ github.event.inputs.phpversion }}"
+        PHP_BIN: "/usr/bin/php${{ github.event.inputs.phpversion }}"
       run: |
         # Suppress these weird PHP things...
         printf "{\n PHP's weird string comparison\n Memcheck:Cond\n fun:zend_string_equal_val\n obj:$PHP_BIN\n}\n" > php_perl.supp
