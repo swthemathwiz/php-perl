@@ -1,5 +1,5 @@
 --TEST--
-Test 75: Run module info function.
+Test 75: Run module info function
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

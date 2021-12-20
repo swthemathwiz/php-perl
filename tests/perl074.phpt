@@ -1,5 +1,5 @@
 --TEST--
-Test 74: Chaining scalar keywords. 
+Test 74: Chaining scalar keywords
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

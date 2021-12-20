@@ -1,5 +1,5 @@
 --TEST--
-Test 73: Cloning special object;
+Test 73: Cloning special object
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--
