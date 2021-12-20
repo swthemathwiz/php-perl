@@ -27,8 +27,8 @@
 #if 0
 #define TRACE_SUB( S )           int _trace_rc ZEND_ATTRIBUTE_UNUSED = fprintf( stderr, "%s\n", ( S ) ) | fflush( stderr );
 #define TRACE_MSG( S )           do { fprintf( stderr, "%s\n", ( S ) ); fflush( stderr ); } while( 0 )
-#define TRACE_MSG2( F, V )       do { fprintf( stderr, F "\n", ( V ) ); fflush( stderr ); } while( 0 ) 
-#define TRACE_MSG3( F, V1, V2 )  do { fprintf( stderr, F "\n", ( V1 ), ( V2 ) ); fflush( stderr ); } while( 0 ) 
+#define TRACE_MSG2( F, V )       do { fprintf( stderr, F "\n", ( V ) ); fflush( stderr ); } while( 0 )
+#define TRACE_MSG3( F, V1, V2 )  do { fprintf( stderr, F "\n", ( V1 ), ( V2 ) ); fflush( stderr ); } while( 0 )
 #define TRACE_SV_DUMP( SV )      do { sv_dump( ( SV ) ); } while( 0 )
 #define TRACE_ASSERT( C )        do { if( !( C ) ) abort(); } while( 0 )
 #define TEST_START_STOP
@@ -42,6 +42,13 @@
 #undef  TEST_START_STOP
 #endif /* if 0 */
 
+#ifndef ZEND_EXTENSION_API_NO_8_0_X
+#define ZEND_EXTENSION_API_NO_8_0_X 420200930
+#endif
+#ifndef ZEND_EXTENSION_API_NO_7_4_X
+#define ZEND_EXTENSION_API_NO_7_4_X 320190902
+#endif
+
 #if HAVE_PERL
 
 #include <EXTERN.h>     /* from the Perl distribution */
@@ -50,7 +57,8 @@
 #include <perlapi.h>    /* from the Perl distribution */
 #include <XSUB.h>       /* from the Perl distribution */
 
-/* Shamelessy take from perl/core/vutil.h */
+#if !defined(PERL_VERSION_LT) || !defined(PERL_VERSION_GE)
+/* Shamelessly taken from perl/core/vutil.h */
 #define PERL_VERSION_DECIMAL(r,v,s) (r*1000000 + v*1000 + s)
 #define PERL_DECIMAL_VERSION \
         PERL_VERSION_DECIMAL(PERL_REVISION,PERL_VERSION,PERL_SUBVERSION)
@@ -58,8 +66,9 @@
         (PERL_DECIMAL_VERSION < PERL_VERSION_DECIMAL(r,v,s))
 #define PERL_VERSION_GE(r,v,s) \
         (PERL_DECIMAL_VERSION >= PERL_VERSION_DECIMAL(r,v,s))
+#endif
 
-#undef END_EXTERN_C     /* bypass macros redeclaration warning */
+#undef END_EXTERN_C     /* bypass macros redeclaration warning (defined in Perl and PHP) */
 
 #include "php.h"
 #include "zend_objects_API.h"
@@ -70,7 +79,10 @@
 #include "php_perl.h"
 
 #ifndef ZEND_EXTENSION_API_NO_7_4_X
-# define	ZEND_EXTENSION_API_NO_7_4_X     320190902
+#  define ZEND_EXTENSION_API_NO_7_4_X     320190902
+#endif
+#ifndef ZEND_EXTENSION_API_NO_8_0_X
+#  define ZEND_EXTENSION_API_NO_8_0_X     420200930
 #endif
 
 ZEND_BEGIN_MODULE_GLOBALS( perl )
@@ -159,6 +171,37 @@ typedef struct php_perl_object {
   zend_object  std;
 } php_perl_object;
 
+/* Three basic types used by Zend to access Perl objects (with members or offsets) */
+#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
+
+typedef zend_object *php_perl_zop;              /* Zend object pointer */
+#define php_perl_from_zop(V)                    (php_perl_from_zend((V)))
+#define php_perl_zop_to_ce(V)                   ((V)->ce)
+
+typedef zend_string *php_perl_mp;               /* Zend member pointer */
+#define php_perl_get_member_string(V)           (V)
+#define php_perl_release_member_string(V)
+
+typedef zval *php_perl_offp;                    /* Zend offset pointer */
+#define php_perl_offset_to_member(V)            (zval_get_string((V)))
+#define php_perl_release_offset_member(V)       (zend_string_release((V)))
+
+#else
+
+typedef zval *php_perl_zop;                     /* Zend object pointer */
+#define php_perl_from_zop(V)                    (php_perl_from_zend(Z_OBJ_P((V))))
+#define php_perl_zop_to_ce(V)                   (Z_OBJCE_P(V))
+
+typedef zval *php_perl_mp;                      /* Zend member pointer */
+#define php_perl_get_member_string(V)           (zval_get_string((V)))
+#define php_perl_release_member_string(V)       (zend_string_release((V)))
+
+typedef zval *php_perl_offp;                    /* Zend offset pointer */
+#define php_perl_offset_to_member(V)            (V)
+#define php_perl_release_offset_member(V)
+
+#endif
+
 /* Function to move from zend object to perl object */
 static inline php_perl_object *
 php_perl_from_zend( zend_object *object )
@@ -187,22 +230,19 @@ static zval *php_perl_sv_to_zval_ref( SV *sv, zval *zv, HashTable *var_hash );
 static zval *php_perl_sv_to_zval( SV *sv, zval *zv );
 
 /* Handlers for Perl objects overloading */
-static zval *php_perl_read_property( zval *object, zval *member, int type, void * *cache_slot, zval *rv );
-
+static zval *php_perl_read_property( php_perl_zop object, php_perl_mp member, int type, void * *cache_slot, zval *rv );
 #if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_7_4_X)
-static zval *php_perl_write_property( zval *object, zval *member, zval *value, void * *cache_slot );
+static zval *php_perl_write_property( php_perl_zop object, php_perl_mp member, zval *value, void * *cache_slot );
 #else
-static void  php_perl_write_property( zval *object, zval *member, zval *value, void * *cache_slot );
+static void  php_perl_write_property( php_perl_zop object, php_perl_mp member, zval *value, void * *cache_slot );
 #endif
-static int   php_perl_has_property( zval *object, zval *member, int has_set_exists, void * *cache_slot );
-static void  php_perl_unset_property( zval *object, zval *member, void * *cache_slot );
-static zval *php_perl_read_dimension( zval *object, zval *offset, int type, zval *rv );
-static void  php_perl_write_dimension( zval *object, zval *offset, zval *value );
-static int   php_perl_has_dimension( zval *object, zval *offset, int check_empty );
-static void  php_perl_unset_dimension( zval *object, zval *offset );
-#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_7_4_X)
-static zval *php_perl_get_property_ptr_ptr( zval *object, zval *member, int type, void * *cache_slot );
-#endif
+static int   php_perl_has_property( php_perl_zop object, php_perl_mp member, int has_set_exists, void * *cache_slot );
+static void  php_perl_unset_property( php_perl_zop object, php_perl_mp member, void * *cache_slot );
+static zval *php_perl_read_dimension( php_perl_zop object, php_perl_offp offset, int type, zval *rv );
+static void  php_perl_write_dimension( php_perl_zop object, php_perl_offp offset, zval *value );
+static int   php_perl_has_dimension( php_perl_zop object, php_perl_offp offset, int check_empty );
+static void  php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset );
+static zval *php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_mp member, int type, void * *cache_slot );
 
 static SV *
 PerlIOPHP_getarg( pTHX_ PerlIO *f, CLONE_PARAMS *param, int flags )
@@ -296,7 +336,7 @@ php_perl_init( void )
     PerlIO_define_layer( aTHX_ & PerlIO_PHP );
     PerlIO_push(aTHX_ PerlIO_stdout(), &PerlIO_PHP, "w", NULL);
 
-    TRACE_MSG2( "  perl interpretor " ZEND_ADDR_FMT " created", (zend_ulong)my_perl );
+    TRACE_MSG2( "  perl interpreter " ZEND_ADDR_FMT " created", (zend_ulong)my_perl );
     PERLG( perl )  = my_perl;
     zend_hash_init( &PERLG( perl_objects ), 0, NULL, NULL, 0 );
   }
@@ -320,7 +360,7 @@ php_perl_destroy( void )
     perl_destruct( my_perl );
     perl_free( my_perl );
 
-    TRACE_MSG2( "  perl interpretor " ZEND_ADDR_FMT " freed", (zend_ulong)my_perl );
+    TRACE_MSG2( "  perl interpreter " ZEND_ADDR_FMT " freed", (zend_ulong)my_perl );
     zend_hash_destroy( &PERLG( perl_objects ) );
     PERLG( perl ) = NULL;
 
@@ -981,6 +1021,7 @@ php_perl_call( const char *func, int argc, zval *argv,
 
 /****************************************************************************/
 
+#if (ZEND_EXTENSION_API_NO < ZEND_EXTENSION_API_NO_8_0_X)
 static zval *
 php_perl_get( zval *object, zval *retval )
 {
@@ -1010,14 +1051,15 @@ php_perl_set( zval *object, zval *value )
   }
   sv_setsv( sv, php_perl_zval_to_sv( value ) );
 } /* php_perl_set */
+#endif
 
 /* Returns element of array based Perl's object */
 static zval *
-php_perl_read_dimension( zval *object, zval *offset_val, int type, zval *rv )
+php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type, zval *rv )
 {
   TRACE_SUB( "php_perl_read_dimension" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   SV                      *sv        = obj->sv;
   zend_bool                write     = ZEND_TRUTH( type != BP_VAR_R && type != BP_VAR_IS );
   zval                    *retval    = NULL;
@@ -1052,7 +1094,9 @@ php_perl_read_dimension( zval *object, zval *offset_val, int type, zval *rv )
     }
   }
   else if( SvTYPE( sv ) == SVt_PVHV ) {
-    retval = php_perl_read_property( object, offset_val, type, NULL, rv );
+    php_perl_mp mp = php_perl_offset_to_member( offset_val );
+    retval = php_perl_read_property( object, mp, type, NULL, rv );
+    php_perl_release_offset_member( mp );
   }
   else {
     zend_error( E_WARNING, "[perl] Object is not an array" );
@@ -1066,11 +1110,11 @@ php_perl_read_dimension( zval *object, zval *offset_val, int type, zval *rv )
 
 /* Sets element of array based Perl's object */
 static void
-php_perl_write_dimension( zval *object, zval *offset_val, zval *value )
+php_perl_write_dimension( php_perl_zop object, php_perl_offp offset_val, zval *value )
 {
   TRACE_SUB( "php_perl_write_dimension" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   SV                      *sv        = obj->sv;
 
   if( sv == NULL ) {
@@ -1084,7 +1128,9 @@ php_perl_write_dimension( zval *object, zval *offset_val, zval *value )
     av_store( av, zval_get_long(offset_val), php_perl_zval_to_sv( value ) );
   }
   else if( SvTYPE( sv ) == SVt_PVHV ) {
-    php_perl_write_property( object, offset_val, value, NULL );
+    php_perl_mp mp = php_perl_offset_to_member( offset_val );
+    php_perl_write_property( object, mp, value, NULL );
+    php_perl_release_offset_member( mp );
   }
   else {
     zend_error( E_WARNING, "[perl] Object is not an array" );
@@ -1093,11 +1139,11 @@ php_perl_write_dimension( zval *object, zval *offset_val, zval *value )
 
 /* Checks if element of array based Perl's object isset or empty */
 static int
-php_perl_has_dimension( zval *object, zval *offset_val, int check_empty )
+php_perl_has_dimension( php_perl_zop object, php_perl_offp offset_val, int check_empty )
 {
   TRACE_SUB( "php_perl_has_dimension" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   SV                      *sv        = obj->sv;
   int                      ret       = 0;
 
@@ -1127,7 +1173,9 @@ php_perl_has_dimension( zval *object, zval *offset_val, int check_empty )
     }
   }
   else if( SvTYPE( sv ) == SVt_PVHV ) {
-    ret = php_perl_has_property( object, offset_val, check_empty, NULL );
+    php_perl_mp mp = php_perl_offset_to_member( offset_val );
+    ret = php_perl_has_property( object, mp, check_empty, NULL );
+    php_perl_release_offset_member( mp );
   }
   else {
     zend_error( E_WARNING, "[perl] Object is not an array" );
@@ -1137,11 +1185,11 @@ php_perl_has_dimension( zval *object, zval *offset_val, int check_empty )
 
 /* Deletes element of array based Perl's object */
 static void
-php_perl_unset_dimension( zval *object, zval *offset_val )
+php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset_val )
 {
   TRACE_SUB( "php_perl_unset_dimension" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   SV                      *sv        = obj->sv;
 
   if( sv == NULL ) {
@@ -1155,33 +1203,33 @@ php_perl_unset_dimension( zval *object, zval *offset_val )
     av_delete( av, zval_get_long(offset_val), G_DISCARD );
   }
   else if( SvTYPE( sv ) == SVt_PVHV ) {
-    php_perl_unset_property( object, offset_val, NULL );
+    php_perl_mp mp = php_perl_offset_to_member( offset_val );
+    php_perl_unset_property( object, mp, NULL );
+    php_perl_release_offset_member( mp );
   }
   else {
     zend_error( E_WARNING, "[perl] Object is not an array" );
   }
 } /* php_perl_unset_dimension */
 
-#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_7_4_X)
 static zval *
-php_perl_get_property_ptr_ptr( zval *object, zval *member, int type, void **cache_slot )
+php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_mp member_val, int type, void **cache_slot )
 {
   /* Fallback to read_property. */
   return NULL;
 } /* php_perl_get_property_ptr_ptr */
-#endif
 
 /* Returns property of hash based Perl's object */
 static zval *
-php_perl_read_property( zval *object, zval *member_val, int type, void * *key_, zval *rv )
+php_perl_read_property( php_perl_zop object, php_perl_mp member_val, int type, void * *key_, zval *rv )
 {
   TRACE_SUB( "php_perl_read_property" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   zval                    *retval    = NULL;
   SV                      *sv        = NULL;
   zend_bool                write     = ZEND_TRUTH( type != BP_VAR_R && type != BP_VAR_IS );
-  zend_string             *member    = zval_get_string(member_val);
+  zend_string             *member    = php_perl_get_member_string(member_val);
 
   ZVAL_UNDEF( rv );
 
@@ -1277,7 +1325,7 @@ php_perl_read_property( zval *object, zval *member_val, int type, void * *key_, 
   }
 
 php_perl_read_property_cleanup:
-  zend_string_release(member);
+  php_perl_release_member_string(member);
 
   if( retval == NULL )
     return &EG( uninitialized_zval );
@@ -1288,17 +1336,17 @@ php_perl_read_property_cleanup:
 /* Sets property of hash based Perl's object */
 #if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_7_4_X)
 static zval *
-php_perl_write_property( zval *object, zval *member_val, zval *value, void * *cache_slot )
+php_perl_write_property( php_perl_zop object, php_perl_mp member_val, zval *value, void * *cache_slot )
 #else
 static void
-php_perl_write_property( zval *object, zval *member_val, zval *value, void * *cache_slot )
+php_perl_write_property( php_perl_zop object, php_perl_mp member_val, zval *value, void * *cache_slot )
 #endif
 {
   TRACE_SUB( "php_perl_write_property" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   SV                      *sv        = obj->sv;
-  zend_string             *member    = zval_get_string(member_val);
+  zend_string             *member    = php_perl_get_member_string(member_val);
   zval                    *result    = NULL;
 
   if( sv == NULL ) {
@@ -1370,7 +1418,7 @@ php_perl_write_property( zval *object, zval *member_val, zval *value, void * *ca
     }
   }
 
-  zend_string_release(member);
+  php_perl_release_member_string(member);
 #if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_7_4_X)
   return result;
 #endif
@@ -1395,14 +1443,14 @@ again:
 
 /* Checks if property of hash based Perl's object isset or empty */
 static int
-php_perl_has_property( zval *object, zval *member_val, int has_set_exists, void * *cache_slot )
+php_perl_has_property( php_perl_zop object, php_perl_mp member_val, int has_set_exists, void * *cache_slot )
 {
   TRACE_SUB( "php_perl_has_property" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   SV                      *sv        = obj->sv;
   int                      ret       = 0;
-  zend_string             *member    = zval_get_string(member_val);
+  zend_string             *member    = php_perl_get_member_string(member_val);
 
   TRACE_MSG2( "  has_property '%s'", ZSTR_VAL( member ) );
   TRACE_MSG2( "  has_property - has_set_exists=%d", (int)has_set_exists );
@@ -1456,28 +1504,28 @@ php_perl_has_property( zval *object, zval *member_val, int has_set_exists, void 
     zval zv;
     ZVAL_UNDEF( &zv );
     php_perl_sv_to_zval( sv, &zv );
-    /* (isset) whether property exists and is true */ 
+    /* (isset) whether property exists and is true */
     if( has_set_exists == 1 )
       ret = zval_is_true( &zv );
-    /* (has) whether property exists and is not NULL */ 
+    /* (has) whether property exists and is not NULL */
     else
       ret = !zval_is_null( &zv );
     zval_ptr_dtor( &zv );
   }
 
-  zend_string_release(member);
+  php_perl_release_member_string(member);
   return ret;
 } /* php_perl_has_property */
 
 /* Deletes property of hash based Perl's object */
 static void
-php_perl_unset_property( zval *object, zval *member_val, void * *cache_slot )
+php_perl_unset_property( php_perl_zop object, php_perl_mp member_val, void * *cache_slot )
 {
   TRACE_SUB( "php_perl_unset_property" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   SV                      *sv        = obj->sv;
-  zend_string             *member    = zval_get_string(member_val);
+  zend_string             *member    = php_perl_get_member_string(member_val);
 
   if( sv == NULL ) {
     if( obj->context == PERL_ARRAY ) {
@@ -1503,7 +1551,7 @@ php_perl_unset_property( zval *object, zval *member_val, void * *cache_slot )
       zend_error( E_WARNING, "[perl] Object is not a hash" );
     }
   }
-  zend_string_release(member);
+  php_perl_release_member_string(member);
 } /* php_perl_unset_property */
 
 /* Constructs Perl object by calling constructor */
@@ -1682,11 +1730,11 @@ php_perl_get_method( zend_object * *object_ptr, zend_string *method, const zval 
 
 /* Returns all properties of Perl's object */
 static HashTable *
-php_perl_get_properties( zval *object )
+php_perl_get_properties( php_perl_zop object )
 {
   TRACE_SUB( "php_perl_get_properties" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *obj       = php_perl_from_zop( object );
   SV                      *sv        = obj->sv;
   HashTable               *ht;
 
@@ -1796,7 +1844,7 @@ php_perl_dtor_obj( zend_object *object )
   TRACE_MSG2( "dtor " ZEND_ADDR_FMT " (zend)", (zend_ulong)object );
 
   /* Call the userland destructor (if it exists) */
-  zend_objects_destroy_object( object ); 
+  zend_objects_destroy_object( object );
 
   /* Removing properties */
   if( obj->properties ) {
@@ -1838,11 +1886,11 @@ php_perl_free_obj( zend_object *object )
    It copies only properties or elements of object, but doesn't copy nested
    arrays, hashes or objects */
 static zend_object *
-php_perl_clone( zval *object )
+php_perl_clone( php_perl_zop object )
 {
   TRACE_SUB( "php_perl_clone" );
 
-  php_perl_object         *old       = php_perl_from_zend( Z_OBJ_P( object ) );
+  php_perl_object         *old       = php_perl_from_zop( object );
   SV                      *new_sv    = NULL;
 
   if( old->kind == PERL_PROXY ) {
@@ -1882,10 +1930,10 @@ php_perl_clone( zval *object )
   }
 
   {
-    php_perl_object *pobj   = (php_perl_object *)zend_object_alloc( sizeof( php_perl_object ), Z_OBJCE_P( object ) );
+    php_perl_object *pobj   = (php_perl_object *)zend_object_alloc( sizeof( php_perl_object ), php_perl_zop_to_ce( object ) );
     zend_object     *new_zo = php_perl_to_zend( pobj );
 
-    zend_object_std_init( new_zo, Z_OBJCE_P( object ) );
+    zend_object_std_init( new_zo, php_perl_zop_to_ce( object ) );
 
     /* Normal initialization of object */
     pobj->sv            = new_sv;
@@ -2002,7 +2050,11 @@ php_perl_iterator_rewind( zend_object_iterator *iterator )
     obj->properties = NULL;
   }
 
+#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
+  php_perl_get_properties( Z_OBJ(iterator->data) );
+#else
   php_perl_get_properties( &iterator->data );
+#endif
 
   if( obj->properties )
     zend_hash_internal_pointer_reset( obj->properties );
@@ -2040,7 +2092,7 @@ PHP_GINIT_FUNCTION( perl ) {
   TRACE_SUB( "PHP_GINIT_FUNCTION" );
 #if defined(COMPILE_DL_PERL) && defined(ZTS)
   ZEND_TSRMLS_CACHE_UPDATE();
-#endif 
+#endif
   ZEND_SECURE_ZERO(perl_globals, sizeof(*perl_globals));
 } /* PHP_GINIT_FUNCTION */
 
@@ -2079,11 +2131,7 @@ PHP_MINIT_FUNCTION( perl ){
   php_perl_object_handlers.write_property       = php_perl_write_property;
   php_perl_object_handlers.read_dimension       = php_perl_read_dimension;
   php_perl_object_handlers.write_dimension      = php_perl_write_dimension;
-#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_7_4_X)
   php_perl_object_handlers.get_property_ptr_ptr = php_perl_get_property_ptr_ptr;
-#else
-  php_perl_object_handlers.get_property_ptr_ptr = NULL;
-#endif
   php_perl_object_handlers.has_property         = php_perl_has_property;
   php_perl_object_handlers.unset_property       = php_perl_unset_property;
   php_perl_object_handlers.has_dimension        = php_perl_has_dimension;
@@ -2091,13 +2139,21 @@ PHP_MINIT_FUNCTION( perl ){
   php_perl_object_handlers.get_properties       = php_perl_get_properties;
   php_perl_object_handlers.get_method           = php_perl_get_method;
   php_perl_object_handlers.get_class_name       = php_perl_get_class_name;
+#if (ZEND_EXTENSION_API_NO < ZEND_EXTENSION_API_NO_8_0_X)
   php_perl_object_handlers.compare_objects      = NULL;
+#else
+  php_perl_object_handlers.compare              = NULL;
+#endif
   php_perl_object_handlers.cast_object          = NULL;
 
   /* Setup proxy handlers. Copied from normal class above and adjusted */
   memcpy( &php_perl_proxy_handlers, &php_perl_object_handlers, sizeof( zend_object_handlers ) );
+#if (ZEND_EXTENSION_API_NO < ZEND_EXTENSION_API_NO_8_0_X)
   php_perl_proxy_handlers.get                   = php_perl_get;
   php_perl_proxy_handlers.set                   = php_perl_set;
+#else
+  0; /* FIXME: fix proxy handling in PHP 8.x */
+#endif
 
   return SUCCESS;
 } /* PHP_MINIT_FUNCTION */
