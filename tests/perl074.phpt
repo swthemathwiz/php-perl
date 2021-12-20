@@ -11,12 +11,12 @@ var_dump($perl->scalar->a);
 var_dump($perl->scalar->scalar->a);
 echo "ok\n";
 ?>
---EXPECTF--
-int(1)
-int(1)
+--EXPECTREGEX--
+int\(1\)
+int\(1\)
 
-Notice: [perl] Undefined variable: '$scalar' in %sperl074.php on line %d
+Notice: \[perl\] Undefined variable: '\$scalar' in .*perl074\.php on line [0-9]+
 
-Notice: Trying to get property 'a' of non-object in %sperl074.php on line %d
+(Notice: Trying to get property 'a' of non-object)|(Warning: Attempt to read property "a" on null) in .*perl074\.php on line [0-9]+
 NULL
 ok
