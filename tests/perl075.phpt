@@ -15,6 +15,6 @@ perl
 Perl support => enabled
 .*
 Perl version => \d+\.\d+\.\d+
-Perl runtime version => \d+\.\d+\.\d+
+Perl compile version => \d+\.\d+\.\d+
 .*
 ok
