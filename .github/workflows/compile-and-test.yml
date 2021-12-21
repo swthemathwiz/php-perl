@@ -72,8 +72,8 @@ jobs:
         PHP_BIN: "/usr/bin/php${{ github.event.inputs.phpversion }}"
       run: |
         # Patch PHP executable name
-        cat php_perl.supp | perl -p -e "s#obj:/usr/bin/php#obj:$PHP_BIN#" > php_perl_fixexe.supp 
-        echo "Note: Suppressing the following Memory Check Errors" && cat php_perl_fixexe.supp
+        cat php_perl.supp | perl -p -e "s#obj:/usr/bin/php#obj:$PHP_BIN#" | tee php_perl_fixexe.supp
+        # Set in valgrindrc
         echo "--suppressions=$PWD/php_perl_fixexe.supp" > ~/.valgrindrc
     - name: Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
