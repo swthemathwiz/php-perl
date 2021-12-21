@@ -381,7 +381,7 @@ binary_hash_add( HashTable *hash, const void *key, void *data )
     zend_hash_index_add_ptr( hash, (zend_ulong)key, data );
   }
   else {
-    char key_str[64 + 1];
+    char key_str[ZEND_LTOA_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
     TRACE_MSG3( "  key = %s <-> " ZEND_ADDR_FMT, key_str, (size_t)data );
 
@@ -400,7 +400,7 @@ binary_hash_del( HashTable *hash, const void *key )
     zend_hash_index_del( hash, (zend_ulong)key );
   }
   else {
-    char key_str[64 + 1];
+    char key_str[ZEND_LTOA_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
     TRACE_MSG2( "  key = %s deleted", key_str );
     zend_hash_str_del( hash, key_str, strlen( key_str ) );
@@ -417,7 +417,7 @@ binary_hash_find( HashTable *hash, const void *key, void * *data )
     TRACE_MSG3( "  key = " ZEND_ADDR_FMT " %s", (size_t)key, ( *data == NULL ) ? "not found" : "found" );
   }
   else {
-    char key_str[64 + 1];
+    char key_str[ZEND_LTOA_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
     *data = zend_hash_str_find_ptr( hash, key_str, strlen( key_str ) );
     TRACE_MSG3( "  key = %s %s", key_str, ( *data == NULL ) ? "not found" : "found" );
@@ -650,7 +650,7 @@ php_perl_zval_to_sv_noref( zval *zv,
             zend_ulong   index;
 
             if( zend_hash_get_current_key( ht, &key, &index ) != HASH_KEY_IS_STRING ) {
-              char xkey[64 + 1];
+              char xkey[ZEND_LTOA_BUF_LEN];
               zend_sprintf( xkey, ZEND_ULONG_FMT, index );
               hv_store( hv, xkey, strlen( xkey ), php_perl_zval_to_sv_ref( zend_hash_get_current_data( ht ), var_hash ), 0 );
             }
@@ -1384,7 +1384,7 @@ php_perl_write_property( php_perl_zop object, php_perl_mp member_val, zval *valu
           zend_ulong   index;
 
           if( zend_hash_get_current_key( ht, &key, &index ) != HASH_KEY_IS_STRING ) {
-            char xkey[64 + 1];
+            char xkey[ZEND_LTOA_BUF_LEN];
             zend_sprintf( xkey, ZEND_ULONG_FMT, index );
             result = zend_hash_get_current_data( ht );
             hv_store( hv, xkey, strlen( xkey ), php_perl_zval_to_sv_ref( result, &var_hash ), 0 );
