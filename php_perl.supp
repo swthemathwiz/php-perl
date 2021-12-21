@@ -1,0 +1,30 @@
+#
+# Suppression file for memory checking PHP/Perl extension
+#
+# This can be added to your ~/.valgrindrc file by including:
+#   --suppressions=php_perl.supp
+# and then the memory check tests can be run by adding "-m"
+# to the run_tests.php executable in Makefile.
+#
+# The object name "/usr/bin/php" needs to be set to the exact
+# PHP executable name (e.g. "/usr/bin/php7.4").
+#
+
+# PHP's weird string comparison optimization
+{
+   php_perl_weird_string_comparison
+   Memcheck:Cond
+   fun:zend_string_equal_val
+   obj:/usr/bin/php
+}
+
+# PHP's phpinfo(INFO_MODULES) and scandir interaction
+# (or perhaps another extension) found on Ubuntu w/ php 8.0.
+{
+   php_perl_info_scandir
+   Memcheck:Cond
+   obj:/usr/bin/php
+   fun:__scandir64_tail
+   ...
+   fun:php_print_info
+}
