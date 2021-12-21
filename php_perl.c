@@ -2177,10 +2177,12 @@ PHP_MINFO_FUNCTION( perl ){
   php_info_print_table_start();
   php_info_print_table_header( 2, "Perl support", "enabled" );
   php_info_print_table_row( 2, "Extension version", PHP_PERL_VERSION );
-  php_info_print_table_row( 2, "Revision", "$Revision: 289243 $" );
-  char full_perl_version[64];
-  sprintf( full_perl_version, "%d.%d.%d", PERL_REVISION, PERL_VERSION, PERL_SUBVERSION );
-  php_info_print_table_row( 2, "Perl version", full_perl_version );
+  php_info_print_table_row( 2, "Perl version", PERL_VERSION_STRING );
+  {
+    char rt_perl_version[64];
+    snprintf( rt_perl_version, sizeof(rt_perl_version), "%d.%d.%d", PL_revision, PL_version, PL_subversion );
+    php_info_print_table_row( 2, "Perl runtime version", rt_perl_version );
+  }
   php_info_print_table_end();
 } /* PHP_MINFO_FUNCTION */
 
