@@ -101,9 +101,12 @@ static PHP_GSHUTDOWN_FUNCTION( perl );
 PHP_FUNCTION( perl_start );
 PHP_FUNCTION( perl_stop );
 
+ZEND_BEGIN_ARG_INFO(arginfo_perl_start_stop, 0)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry perl_static_functions[] = {
-  PHP_FE( perl_start, NULL )
-  PHP_FE( perl_stop, NULL )
+  PHP_FE( perl_start, arginfo_perl_start_stop )
+  PHP_FE( perl_stop, arginfo_perl_start_stop )
   PHP_FE_END
 };
 #endif
@@ -1215,6 +1218,8 @@ php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset_val )
 static zval *
 php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_mp member_val, int type, void **cache_slot )
 {
+  TRACE_SUB( "php_perl_get_property_ptr_ptr" );
+
   /* Fallback to read_property. */
   return NULL;
 } /* php_perl_get_property_ptr_ptr */
