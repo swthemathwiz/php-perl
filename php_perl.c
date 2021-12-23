@@ -121,7 +121,7 @@ ZEND_BEGIN_ARG_INFO(arginfo_perl_require, 0)
         ZEND_ARG_INFO(0, perl_filename)
 ZEND_END_ARG_INFO()
 
-static const zend_function_entry perl_functions[] = {
+static const zend_function_entry perl_methods[] = {
   PHP_ME( Perl, eval,    arginfo_perl_eval,    ZEND_ACC_PUBLIC )
   PHP_ME( Perl, require, arginfo_perl_require, ZEND_ACC_PUBLIC )
   PHP_FE_END
@@ -2133,9 +2133,10 @@ PHP_MINIT_FUNCTION( perl ){
   /* Exception raised. */
   INIT_CLASS_ENTRY( ce, "PerlException", NULL );
   php_perl_exception_ce                         = zend_register_internal_class_ex( &ce, zend_exception_get_default() );
+  php_perl_exception_ce->ce_flags              |= ZEND_ACC_FINAL;
 
   /* Class of perl objects. */
-  INIT_CLASS_ENTRY( ce, "Perl", perl_functions );
+  INIT_CLASS_ENTRY( ce, "Perl", perl_methods );
   php_perl_ce                                   = zend_register_internal_class( &ce );
   php_perl_ce->create_object                    = php_perl_create_object;
   php_perl_ce->get_iterator                     = php_perl_get_iterator;
