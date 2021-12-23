@@ -552,7 +552,7 @@ php_perl_hash_get_zval( zval *zv, const char *key, size_t key_len )
 static inline SV *
 php_perl_deref( SV *sv )
 {
-  while( SvTYPE( sv ) == SVt_RV )
+  while( SvROK( sv ) )
     sv = SvRV( sv );
   return sv;
 } /* php_perl_deref */
@@ -1310,13 +1310,12 @@ php_perl_read_property( php_perl_zop object, php_perl_mp member_val, int type, v
 
       prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), write );
       if( prop_val != NULL ) {
-        sv = *prop_val;
-        if( write && !sv_isobject( sv ) )
-          retval = php_perl_create_new_object( rv, sv, PERL_PROXY );
+        if( write && !sv_isobject( *prop_val ) )
+          retval = php_perl_create_new_object( rv, *prop_val, PERL_PROXY );
         else
           retval = php_perl_sv_to_zval( *prop_val, rv );
-        goto php_perl_read_property_cleanup;
       }
+      goto php_perl_read_property_cleanup;
     }
     else {
       zend_error( E_WARNING, "[perl] Object is not a hash" );
@@ -1807,12 +1806,28 @@ php_perl_get_class_name( const zend_object *object )
   TRACE_MSG2( "get_class_name " ZEND_ADDR_FMT " (zend)", (zend_ulong)object );
 
   if( sv == NULL ) {
-    name = "Perl";
+    if( pobj->kind == PERL_SPECIAL ) {
+      switch( pobj->context ) {
+        case PERL_ARRAY:
+          name = "Perl::<array operator>";
+          break;
+        case PERL_HASH:
+          name = "Perl::<hash operator>";
+          break;
+        case PERL_SCALAR:
+        default:
+          name = "Perl::<scalar operator>";
+          break;
+      }
+    }
+    else 
+      name = "Perl";
   }
   else {
     HV *stash;
-    sv = php_perl_deref( sv );
-    if( ( stash = SvSTASH( sv ) ) != NULL ) {
+    if( SvROK(sv) &&
+        SvTYPE(SvRV(sv)) >= SVt_PVMG &&
+        ( stash = SvSTASH( SvRV(sv) ) ) != NULL ) {
       const char *tmp     = HvNAME( stash );
       const int   tmp_len = strlen( tmp );
 
@@ -1820,15 +1835,15 @@ php_perl_get_class_name( const zend_object *object )
       strcpy( allocated, "Perl::" );
       strcpy( allocated + sizeof( "Perl::" ) - 1, tmp );
     }
-    else if( SvTYPE( sv ) == SVt_PVAV ) {
+  }
+
+  if( name == NULL ) { 
+    if( SvTYPE( sv ) == SVt_PVAV )
       name = "Perl::array";
-    }
-    else if( SvTYPE( sv ) == SVt_PVHV ) {
+    else if( SvTYPE( sv ) == SVt_PVHV )
       name = "Perl::hash";
-    }
-    else {
+    else
       name = "Perl::scalar";
-    }
   }
 
   zend_string *ret = zend_string_init( name, strlen( name ), 0 );
@@ -1943,8 +1958,8 @@ php_perl_clone( php_perl_zop object )
     /* Normal initialization of object */
     pobj->sv            = new_sv;
     pobj->properties    = NULL;
-    pobj->context       = PERL_SCALAR;
-    pobj->kind          = PERL_NORMAL;
+    pobj->context       = old->context;
+    pobj->kind          = old->kind;
     pobj->remembered    = FALSE;
     pobj->remembered_sv = NULL;
 

@@ -19,8 +19,8 @@ object(Perl)#1 (0) {
 }
 object(Perl)#2 (0) {
 }
-object(Perl)#3 (0) {
+object(Perl::<array operator>)#3 (0) {
 }
-object(Perl)#4 (0) {
+object(Perl::<array operator>)#4 (0) {
 }
 ok
