@@ -22,8 +22,12 @@ $x = new Perl('Foo');
 $x[0]++;
 ++$x[0];
 var_dump($x[0]);
+$x[0]--;
+--$x[0];
+var_dump($x[0]);
 echo "ok\n";
 ?>
 --EXPECT--
 int(2)
+int(0)
 ok

@@ -76,6 +76,7 @@
 #include "zend_extensions.h"
 #include "ext/standard/info.h"
 #include "SAPI.h"
+
 #include "php_perl.h"
 
 #ifndef ZEND_EXTENSION_API_NO_7_4_X
@@ -246,6 +247,9 @@ static void  php_perl_write_dimension( php_perl_zop object, php_perl_offp offset
 static int   php_perl_has_dimension( php_perl_zop object, php_perl_offp offset, int check_empty );
 static void  php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset );
 static zval *php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_mp member, int type, void * *cache_slot );
+#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
+static int   php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 );
+#endif
 
 static SV *
 PerlIOPHP_getarg( pTHX_ PerlIO *f, CLONE_PARAMS *param, int flags )
@@ -1558,6 +1562,44 @@ php_perl_unset_property( php_perl_zop object, php_perl_mp member_val, void * *ca
   php_perl_release_member_string(member);
 } /* php_perl_unset_property */
 
+#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
+static int
+php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
+{
+  TRACE_SUB( "php_perl_do_operation" );
+
+  TRACE_MSG2( "  opcode = %d", (int)opcode );
+  /* Is is an increment (++) or decrement (--) */
+  if( (opcode == ZEND_ADD || opcode == ZEND_SUB) &&
+      result == op1 &&
+      Z_TYPE_P(op2) == IS_LONG && Z_LVAL_P(op2) == 1 ) {
+    php_perl_object *obj = php_perl_from_zend( Z_OBJ_P( result ) );
+    SV              *sv  = obj->sv;
+
+    if( sv == NULL ) {
+      zend_error( E_ERROR, "[perl] Cannot access value" );
+      return FAILURE;
+    }
+    else if( SvREADONLY(sv) ) {
+      zend_error( E_ERROR, "[perl] Cannot increment/decrement read-only value" );
+      return FAILURE;
+    }
+    else if( SvTYPE(sv) >= SVt_PVAV || (isGV_with_GP(sv) && !SvFAKE(sv)) ) {
+      zend_error( E_ERROR, "[perl] Cannot increment/decrement non-scalar" );
+      return FAILURE;
+    }
+
+    if( opcode == ZEND_ADD )
+      sv_inc( sv );
+    else
+      sv_dec( sv );
+    return SUCCESS;
+  }
+
+  return FAILURE;
+} /* php_perl_do_operation */
+#endif
+
 /* Constructs Perl object by calling constructor */
 static void
 php_perl_constructor_handler( INTERNAL_FUNCTION_PARAMETERS )
@@ -2160,12 +2202,9 @@ PHP_MINIT_FUNCTION( perl ){
   php_perl_object_handlers.get_properties       = php_perl_get_properties;
   php_perl_object_handlers.get_method           = php_perl_get_method;
   php_perl_object_handlers.get_class_name       = php_perl_get_class_name;
-#if (ZEND_EXTENSION_API_NO < ZEND_EXTENSION_API_NO_8_0_X)
-  php_perl_object_handlers.compare_objects      = NULL;
-#else
-  php_perl_object_handlers.compare              = NULL;
+#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
+  php_perl_object_handlers.do_operation         = php_perl_do_operation;
 #endif
-  php_perl_object_handlers.cast_object          = NULL;
 
   /* Setup proxy handlers. Copied from normal class above and adjusted */
   memcpy( &php_perl_proxy_handlers, &php_perl_object_handlers, sizeof( zend_object_handlers ) );
