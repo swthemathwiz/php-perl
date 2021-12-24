@@ -2348,7 +2348,7 @@ PHP_METHOD( Perl, eval ){
 
 #ifdef TEST_START_STOP
 PHP_FUNCTION( perl_start ){
-  TRACE_SUB( "PHP_METHOD: perl_start" )
+  TRACE_SUB( "PHP_FUNCTION: perl_start" )
   (void) php_perl_init();
 } /* perl_start */
 
