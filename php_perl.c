@@ -1845,7 +1845,7 @@ php_perl_get_class_name( const zend_object *object )
           break;
       }
     }
-    else 
+    else
       name = "Perl";
   }
   else {
@@ -1862,7 +1862,7 @@ php_perl_get_class_name( const zend_object *object )
     }
   }
 
-  if( name == NULL ) { 
+  if( name == NULL ) {
     if( SvTYPE( sv ) == SVt_PVAV )
       name = "Perl::array";
     else if( SvTYPE( sv ) == SVt_PVHV )
