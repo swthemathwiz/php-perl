@@ -19,6 +19,6 @@ echo "ok\n";
 Fatal error: Uncaught PerlException: [perl] call error: Bye bye! at (eval %d) line %d.
  in %sperl019.php:%d
 Stack trace:
-#0 %sperl019.php(10): Perl->f()
+#0 %sperl019.php(10): Perl->%sf%s
 #1 {main}
   thrown in %sperl019.php on line %d
