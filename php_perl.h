@@ -21,7 +21,7 @@
 
 #include "php.h"
 
-#define PHP_PERL_VERSION "1.21.1"
+#define PHP_PERL_VERSION "1.21.2"
 
 extern zend_module_entry perl_module_entry;
 #define phpext_perl_ptr &perl_module_entry
