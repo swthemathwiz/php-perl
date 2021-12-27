@@ -11,7 +11,7 @@ package Foo;
     my \$this = shift;
     my \$type = ref(\$this) || \$this;
     my \$self = {};
-    \$self->{'a1'} = 1;;
+    \$self->{'a1'} = 1;
     bless \$self, \$type;
     return \$self;
   }
