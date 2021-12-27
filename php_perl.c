@@ -37,6 +37,7 @@
 #define TRACE_MSG3( F, V1, V2 )  do { fprintf( stderr, "  " F "\n", ( V1 ), ( V2 ) ); fflush( stderr ); } while( 0 )
 #define TRACE_SV_DUMP( SV )      do { sv_dump( ( SV ) ); } while( 0 )
 #define TRACE_ZV_DUMP( N, ZV )   do { fprintf( stderr, "  zend value '%s': type %s\n", (N), zend_get_type_by_const( Z_TYPE_P( (ZV) ) ) ); } while( 0 )
+#define TRACE_PERL_OBJECT( D )   do { fprintf( stderr, "  %s " ZEND_ADDR_FMT " (perl) sv=" ZEND_ADDR_FMT "\n", (D), (zend_ulong)(pobj), (zend_ulong)(pobj->sv) ); fflush( stderr ); } while( 0 )
 #define TEST_START_STOP
 #else
 #define TRACE_SUB( S )
@@ -45,6 +46,7 @@
 #define TRACE_MSG3( F, V1, V2 )
 #define TRACE_SV_DUMP( SV )
 #define TRACE_ZV_DUMP( N, ZV )
+#define TRACE_PERL_OBJECT( D )
 #undef  TEST_START_STOP
 #endif /* if 0 */
 
@@ -538,7 +540,7 @@ php_perl_create_new_object( zval *zv, SV *sv, perl_kind kind )
       SvREFCNT_inc( sv );
     pobj->sv = sv;
 
-    TRACE_MSG2( "create perl object with sv => 0x" ZEND_ADDR_FMT, (zend_ulong)pobj->sv );
+    TRACE_PERL_OBJECT( "create" );
     TRACE_SV_DUMP( pobj->sv );
   }
 
@@ -606,8 +608,7 @@ php_perl_zval_to_sv( zval *zv )
 } /* php_perl_zval_to_sv */
 
 static SV *
-php_perl_zval_to_sv_ref( zval *zv,
-                         HashTable *var_hash )
+php_perl_zval_to_sv_ref( zval *zv, HashTable *var_hash )
 {
   TRACE_SUB( "php_perl_zval_to_sv_ref" );
 
@@ -626,8 +627,7 @@ php_perl_zval_to_sv_ref( zval *zv,
 } /* php_perl_zval_to_sv_ref */
 
 static SV *
-php_perl_zval_to_sv_noref( zval *zv,
-                           HashTable *var_hash )
+php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
 {
   TRACE_SUB( "php_perl_zval_to_sv_noref" );
 
@@ -720,9 +720,9 @@ php_perl_zval_to_sv_noref( zval *zv,
 
     case IS_OBJECT:
       if( php_perl_is_our_zval( zv ) ) {
-        php_perl_object *obj = php_perl_from_zend( Z_OBJ_P( zv ) );
+        php_perl_object *pobj = php_perl_from_zend( Z_OBJ_P( zv ) );
         TRACE_MSG( "zend perl object" );
-        return newSVsv( obj->sv );
+        return newSVsv( pobj->sv );
       }
 
       /* We got some other type of object */
@@ -771,8 +771,7 @@ php_perl_sv_to_zval_ref( SV *sv,
   {
     zval *z;
     if( SvREFCNT( sv ) > 1 && binary_hash_find( var_hash, sv, (void * *)&z ) == SUCCESS ) {
-      TRACE_MSG2( "linking 0x" ZEND_ADDR_FMT, (zend_ulong)zv );
-      TRACE_MSG2( "     to 0x" ZEND_ADDR_FMT, (zend_ulong)z );
+      TRACE_MSG3( "linking " ZEND_ADDR_FMT " to " ZEND_ADDR_FMT, (zend_ulong)zv, (zend_ulong)z );
       ZVAL_NEW_REF( zv, z );
       return zv;
     }
@@ -815,11 +814,11 @@ php_perl_sv_to_zval_noref( SV *sv,
     }
     else if( sv_isobject( sv ) ) {        /* object */
       zend_object *recalled_object;
-      TRACE_MSG2( "zval object (sv=0x" ZEND_ADDR_FMT ")", (zend_ulong)sv );
+      TRACE_MSG2( "zval object (sv=" ZEND_ADDR_FMT ")", (zend_ulong)sv );
 
       /* Check for recursion here */
       if( php_perl_recall_object( sv, &recalled_object ) == SUCCESS ) {
-        TRACE_MSG2( "creating recalled object (sv=0x" ZEND_ADDR_FMT ")", (zend_ulong)sv );
+        TRACE_MSG2( "creating recalled object (sv=" ZEND_ADDR_FMT ")", (zend_ulong)sv );
         ZVAL_NEW_REF( zv, &EG( uninitialized_zval ) );
         ZVAL_OBJ( Z_REFVAL_P( zv ), recalled_object );
         GC_ADDREF( recalled_object );
@@ -1064,9 +1063,10 @@ php_perl_get( zval *object, zval *retval )
 {
   TRACE_SUB( "php_perl_get" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zend( Z_OBJ_P( object ) );
+  SV                      *sv        = pobj->sv;
 
+  TRACE_PERL_OBJECT( "get" );
   if( sv == NULL ) {
     zend_error( E_ERROR, "[perl] Cannot get value" );
     return NULL;
@@ -1079,9 +1079,10 @@ php_perl_set( zval *object, zval *value )
 {
   TRACE_SUB( "php_perl_set" );
 
-  php_perl_object         *obj       = php_perl_from_zend( Z_OBJ_P( object ) );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zend( Z_OBJ_P( object ) );
+  SV                      *sv        = pobj->sv;
 
+  TRACE_PERL_OBJECT( "set" );
   if( sv == NULL ) {
     zend_error( E_ERROR, "[perl] Cannot set value" );
     return;
@@ -1096,13 +1097,14 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
 {
   TRACE_SUB( "php_perl_read_dimension" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zop( object );
+  SV                      *sv        = pobj->sv;
   zend_bool                write     = ZEND_TRUTH( type != BP_VAR_R && type != BP_VAR_IS );
   zval                    *retval    = NULL;
 
-  TRACE_ASSERT( rv != NULL );
+  TRACE_PERL_OBJECT( "read dimension" );
 
+  TRACE_ASSERT( rv != NULL );
   ZVAL_UNDEF( rv );
 
   if( sv == NULL ) {
@@ -1110,7 +1112,7 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
     return NULL;
   }
 
-  TRACE_MSG2( "read_dim write = %d", (int)write );
+  TRACE_MSG2( "write = %d", (int)write );
 
   sv = php_perl_deref( sv );
 
@@ -1151,8 +1153,10 @@ php_perl_write_dimension( php_perl_zop object, php_perl_offp offset_val, zval *v
 {
   TRACE_SUB( "php_perl_write_dimension" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zop( object );
+  SV                      *sv        = pobj->sv;
+
+  TRACE_PERL_OBJECT( "write dimension" );
 
   if( sv == NULL ) {
     zend_error( E_ERROR, "[perl] Cannot set dimension" );
@@ -1180,9 +1184,11 @@ php_perl_has_dimension( php_perl_zop object, php_perl_offp offset_val, int check
 {
   TRACE_SUB( "php_perl_has_dimension" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zop( object );
+  SV                      *sv        = pobj->sv;
   int                      ret       = 0;
+
+  TRACE_PERL_OBJECT( "has dimension" );
 
   if( sv == NULL ) {
     zend_error( E_ERROR, "[perl] Cannot check dimension" );
@@ -1226,8 +1232,10 @@ php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset_val )
 {
   TRACE_SUB( "php_perl_unset_dimension" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zop( object );
+  SV                      *sv        = pobj->sv;
+
+  TRACE_PERL_OBJECT( "unset dimension" );
 
   if( sv == NULL ) {
     zend_error( E_ERROR, "[perl] Cannot unset dimension" );
@@ -1264,32 +1272,35 @@ php_perl_read_property( php_perl_zop object, php_perl_mp member_val, int type, v
 {
   TRACE_SUB( "php_perl_read_property" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
+  php_perl_object         *pobj      = php_perl_from_zop( object );
   zval                    *retval    = NULL;
   SV                      *sv        = NULL;
   zend_bool                write     = ZEND_TRUTH( type != BP_VAR_R && type != BP_VAR_IS );
   zend_string             *member    = php_perl_get_member_string(member_val);
 
+  TRACE_ASSERT( rv != NULL );
   ZVAL_UNDEF( rv );
+
+  TRACE_PERL_OBJECT( "read property" );
 
   /* All perl 'member' properties are variables, except for a few predefined specials */
 
-  TRACE_MSG2( "read property member '%s'", ZSTR_VAL( member ) ? ZSTR_VAL( member ) : "<undefined>" );
+  TRACE_MSG2( "member '%s'", ZSTR_VAL( member ) ? ZSTR_VAL( member ) : "<undefined>" );
 
   /* Handle the intermediate special operators */
-  if( obj->kind != PERL_SPECIAL ) {
+  if( pobj->kind != PERL_SPECIAL ) {
     if( zend_string_equals_literal( member, "array" ) ) {
-      retval = php_perl_create_new_object( rv, obj->sv, PERL_SPECIAL );
+      retval = php_perl_create_new_object( rv, pobj->sv, PERL_SPECIAL );
       php_perl_from_zend( Z_OBJ_P( rv ) )->context = PERL_ARRAY;
       goto php_perl_read_property_cleanup;
     }
     else if( zend_string_equals_literal( member, "hash" ) ) {
-      retval = php_perl_create_new_object( rv, obj->sv, PERL_SPECIAL );
+      retval = php_perl_create_new_object( rv, pobj->sv, PERL_SPECIAL );
       php_perl_from_zend( Z_OBJ_P( rv ) )->context = PERL_HASH;
       goto php_perl_read_property_cleanup;
     }
     else if( zend_string_equals_literal( member, "scalar" ) ) {
-      retval = php_perl_create_new_object( rv, obj->sv, PERL_SPECIAL );
+      retval = php_perl_create_new_object( rv, pobj->sv, PERL_SPECIAL );
       php_perl_from_zend( Z_OBJ_P( rv ) )->context = PERL_SCALAR;
       goto php_perl_read_property_cleanup;
     }
@@ -1298,8 +1309,8 @@ php_perl_read_property( php_perl_zop object, php_perl_mp member_val, int type, v
   TRACE_MSG( "rp1" );
 
   /* Trying the pull an array, hash, or scalar from Perl() object space */
-  if( obj->sv == NULL ) {
-    if( obj->context == PERL_ARRAY ) {
+  if( pobj->sv == NULL ) {
+    if( pobj->context == PERL_ARRAY ) {
       sv = (SV *)get_av( ZSTR_VAL( member ), write );
       if( sv && !AvARRAY( sv ) ) {
         if( write )
@@ -1308,7 +1319,7 @@ php_perl_read_property( php_perl_zop object, php_perl_mp member_val, int type, v
           sv = NULL;
       }
     }
-    else if( obj->context == PERL_HASH ) {
+    else if( pobj->context == PERL_HASH ) {
       sv = (SV *)get_hv( ZSTR_VAL( member ), write );
       if( sv && !HvARRAY( sv ) ) {
         if( write )
@@ -1325,9 +1336,9 @@ php_perl_read_property( php_perl_zop object, php_perl_mp member_val, int type, v
     }
 
     if( sv == NULL ) {
-      if( obj->context == PERL_ARRAY )
+      if( pobj->context == PERL_ARRAY )
         zend_error( E_NOTICE, "[perl] Undefined variable: '@%s'", ZSTR_VAL( member ) );
-      else if( obj->context == PERL_HASH )
+      else if( pobj->context == PERL_HASH )
         zend_error( E_NOTICE, "[perl] Undefined variable: '%%%s'", ZSTR_VAL( member ) );
       else
         zend_error( E_NOTICE, "[perl] Undefined variable: '$%s'", ZSTR_VAL( member ) );
@@ -1337,7 +1348,7 @@ php_perl_read_property( php_perl_zop object, php_perl_mp member_val, int type, v
   /* Normal processing... interpret the variable */
   else {
     TRACE_MSG( "rp3" );
-    sv = php_perl_deref( obj->sv );
+    sv = php_perl_deref( pobj->sv );
     if( SvTYPE( sv ) == SVt_PVHV ) {
       HV   *hv = (HV *)sv;
       SV * *prop_val;
@@ -1358,7 +1369,7 @@ php_perl_read_property( php_perl_zop object, php_perl_mp member_val, int type, v
   }
 
   if( sv != NULL ) {
-    TRACE_MSG( "rp6" );
+    TRACE_MSG( "rp4" );
     retval = php_perl_sv_to_zval( sv, rv );
   }
 
@@ -1382,13 +1393,15 @@ php_perl_write_property( php_perl_zop object, php_perl_mp member_val, zval *valu
 {
   TRACE_SUB( "php_perl_write_property" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zop( object );
+  SV                      *sv        = pobj->sv;
   zend_string             *member    = php_perl_get_member_string(member_val);
   zval                    *result    = NULL;
 
+  TRACE_PERL_OBJECT( "write property" );
+
   if( sv == NULL ) {
-    if( obj->context == PERL_ARRAY ) {
+    if( pobj->context == PERL_ARRAY ) {
       AV *av = get_av( ZSTR_VAL( member ), TRUE );
       if( Z_TYPE_P( value ) == IS_ARRAY ) {
         HashTable *ht = Z_ARRVAL_P( value );
@@ -1410,7 +1423,7 @@ php_perl_write_property( php_perl_zop object, php_perl_mp member_val, zval *valu
         zend_error( E_NOTICE, "[perl] array required" );
       }
     }
-    else if( obj->context == PERL_HASH ) {
+    else if( pobj->context == PERL_HASH ) {
       HV *hv = get_hv( ZSTR_VAL( member ), TRUE );
       if( Z_TYPE_P( value ) == IS_ARRAY ) {
         HashTable *ht = Z_ARRVAL_P( value );
@@ -1485,23 +1498,25 @@ php_perl_has_property( php_perl_zop object, php_perl_mp member_val, int has_set_
 {
   TRACE_SUB( "php_perl_has_property" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zop( object );
+  SV                      *sv        = pobj->sv;
   int                      ret       = 0;
   zend_string             *member    = php_perl_get_member_string(member_val);
 
-  TRACE_MSG2( "has_property '%s'", ZSTR_VAL( member ) );
-  TRACE_MSG2( "has_property - has_set_exists=%d", (int)has_set_exists );
-  TRACE_MSG2( "has_property - 0x" ZEND_ADDR_FMT " object", (zend_ulong)object );
-  TRACE_MSG2( "has_property - sv=0x" ZEND_ADDR_FMT "", (zend_ulong)sv );
+  TRACE_PERL_OBJECT( "has property" );
+
+  TRACE_MSG2( "member '%s'", ZSTR_VAL( member ) );
+  TRACE_MSG2( "has_set_exists=%d", (int)has_set_exists );
+  TRACE_MSG2( "object " ZEND_ADDR_FMT " (zend)", (zend_ulong)object );
+  TRACE_MSG2( "sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
 
   if( sv == NULL ) {
-    if( obj->context == PERL_ARRAY ) {
+    if( pobj->context == PERL_ARRAY ) {
       sv = (SV *)get_av( ZSTR_VAL( member ), FALSE );
       if( sv && !AvARRAY( sv ) )
         sv = NULL;
     }
-    else if( obj->context == PERL_HASH ) {
+    else if( pobj->context == PERL_HASH ) {
       sv = (SV *)get_hv( ZSTR_VAL( member ), FALSE );
       if( sv && !HvARRAY( sv ) )
         sv = NULL;
@@ -1561,16 +1576,18 @@ php_perl_unset_property( php_perl_zop object, php_perl_mp member_val, void * *ca
 {
   TRACE_SUB( "php_perl_unset_property" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zop( object );
+  SV                      *sv        = pobj->sv;
   zend_string             *member    = php_perl_get_member_string(member_val);
 
+  TRACE_PERL_OBJECT( "unset property" );
+
   if( sv == NULL ) {
-    if( obj->context == PERL_ARRAY ) {
+    if( pobj->context == PERL_ARRAY ) {
       AV *av = get_av( ZSTR_VAL( member ), FALSE );
       av_undef( av );
     }
-    else if( obj->context == PERL_HASH ) {
+    else if( pobj->context == PERL_HASH ) {
       HV *hv = get_hv( ZSTR_VAL( member ), FALSE );
       hv_undef( hv );
     }
@@ -1603,8 +1620,10 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
   if( (opcode == ZEND_ADD || opcode == ZEND_SUB) &&
       result == op1 &&
       Z_TYPE_P(op2) == IS_LONG && Z_LVAL_P(op2) == 1 ) {
-    php_perl_object *obj = php_perl_from_zend( Z_OBJ_P( result ) );
-    SV              *sv  = obj->sv;
+    php_perl_object *pobj = php_perl_from_zend( Z_OBJ_P( result ) );
+    SV              *sv   = pobj->sv;
+
+    TRACE_PERL_OBJECT( "do operation" );
 
     if( sv == NULL ) {
       zend_error( E_ERROR, "[perl] Cannot access value" );
@@ -1691,6 +1710,8 @@ PHP_METHOD( Perl, __construct )
 
       pobj->sv = sv;
       ; /* Incremented in call (do nothing) SvREFCNT_inc( pobj->sv ); */
+
+      TRACE_PERL_OBJECT( "construct" );
     }
 
     /* Remember it */
@@ -1706,7 +1727,7 @@ PHP_METHOD( Perl, __call )
   TRACE_SUB( "PHP_METHOD: Perl::__call" );
 
   zend_object     *object    = Z_OBJ_P(ZEND_THIS);
-  php_perl_object *obj       = php_perl_from_zend( object );
+  php_perl_object *pobj      = php_perl_from_zend( object );
   zend_string     *method;
   zval            *array;
   int              argc;
@@ -1717,11 +1738,13 @@ PHP_METHOD( Perl, __call )
     Z_PARAM_ARRAY(array)
   ZEND_PARSE_PARAMETERS_END();
 
+  TRACE_PERL_OBJECT( "call" );
+
   /* Flatten the array */
   argc = zend_hash_num_elements(Z_ARRVAL_P(array));
   argv = argc ? (zval *)safe_emalloc( argc, sizeof( zval ), 0 ) : NULL;
 
-  TRACE_MSG3( "call method %s with %d args", ZSTR_VAL( method ), argc );
+  TRACE_MSG3( "method '%s' with %d args", ZSTR_VAL( method ), argc );
   if( argv ) {
     zval *argument_array = argv;
     zval *param_ptr;
@@ -1732,10 +1755,10 @@ PHP_METHOD( Perl, __call )
     } ZEND_HASH_FOREACH_END();
   }
 
-  if( obj->sv == NULL )
-    php_perl_call( ZSTR_VAL( method ), argc, argv, obj->context, return_value );
+  if( pobj->sv == NULL )
+    php_perl_call( ZSTR_VAL( method ), argc, argv, pobj->context, return_value );
   else
-    php_perl_call_method( obj->sv, ZSTR_VAL( method ), argc, argv, obj->context, return_value );
+    php_perl_call_method( pobj->sv, ZSTR_VAL( method ), argc, argv, pobj->context, return_value );
 
   if( argv != NULL ) {
     efree( argv );
@@ -1752,19 +1775,19 @@ PHP_METHOD( Perl, __call )
 } /* Perl::__call */
 
 static HashTable *
-php_perl_alloc_properties( php_perl_object *object )
+php_perl_alloc_properties( php_perl_object *pobj )
 {
   /* Clean existing HashTable */
-  if( object->properties != NULL ) {
-    zend_hash_clean( object->properties );
+  if( pobj->properties != NULL ) {
+    zend_hash_clean( pobj->properties );
   }
   /* Create the hash table */
   else {
-    ALLOC_HASHTABLE( object->properties );
-    zend_hash_init( object->properties, 0, NULL, ZVAL_PTR_DTOR, 0 );
+    ALLOC_HASHTABLE( pobj->properties );
+    zend_hash_init( pobj->properties, 0, NULL, ZVAL_PTR_DTOR, 0 );
   }
 
-  return object->properties;
+  return pobj->properties;
 } /* php_perl_alloc_properties */
 
 /* Returns all properties of Perl's object */
@@ -1773,9 +1796,11 @@ php_perl_get_properties( php_perl_zop object )
 {
   TRACE_SUB( "php_perl_get_properties" );
 
-  php_perl_object         *obj       = php_perl_from_zop( object );
-  SV                      *sv        = obj->sv;
+  php_perl_object         *pobj      = php_perl_from_zop( object );
+  SV                      *sv        = pobj->sv;
   HashTable               *ht        = NULL;
+
+  TRACE_PERL_OBJECT( "get properties" );
 
   /* Default Perl() object (no properties) */
   if( sv == NULL )
@@ -1789,7 +1814,7 @@ php_perl_get_properties( php_perl_zop object )
     I32        key_len;
     HashTable  var_hash;
 
-    ht = php_perl_alloc_properties( obj );
+    ht = php_perl_alloc_properties( pobj );
     zend_hash_init( &var_hash, 0, NULL, NULL, 0 );
     hv_iterinit( hv );
     while( ( el_sv = hv_iternextsv( hv, &key, &key_len ) ) != NULL ) {
@@ -1803,7 +1828,7 @@ php_perl_get_properties( php_perl_zop object )
     I32        i;
     HashTable  var_hash;
 
-    ht = php_perl_alloc_properties( obj );
+    ht = php_perl_alloc_properties( pobj );
     zend_hash_init( &var_hash, 0, NULL, NULL, 0 );
     for( i = 0; i <= len; i++ ) {
       SV * *el_sv = av_fetch( av, i, 0 );
@@ -1827,8 +1852,8 @@ php_perl_get_class_name( const zend_object *object )
   const char            *name      = NULL;
   char                  *allocated = NULL;
 
-  TRACE_MSG2( "get_class_name " ZEND_ADDR_FMT " (perl)", (zend_ulong)pobj );
-  TRACE_MSG2( "get_class_name " ZEND_ADDR_FMT " (zend)", (zend_ulong)object );
+  TRACE_PERL_OBJECT( "name" );
+  TRACE_MSG2( "name " ZEND_ADDR_FMT " (zend)", (zend_ulong)object );
 
   if( sv == NULL ) {
     if( pobj->kind == PERL_SPECIAL ) {
@@ -1883,34 +1908,36 @@ php_perl_dtor_obj( zend_object *object )
 {
   TRACE_SUB( "php_perl_dtor_obj" );
 
-  php_perl_object         *obj       = php_perl_from_zend( object );
+  php_perl_object         *pobj      = php_perl_from_zend( object );
 
   TRACE_ASSERT( object != NULL );
+
+  TRACE_PERL_OBJECT( "dtor" );
   TRACE_MSG2( "dtor " ZEND_ADDR_FMT " (zend)", (zend_ulong)object );
 
   /* Call the userland destructor (if it exists) */
   zend_objects_destroy_object( object );
 
   /* Removing properties */
-  if( obj->properties ) {
-    TRACE_MSG2( "free " ZEND_ADDR_FMT " properties", (zend_ulong)obj );
-    zend_hash_destroy( obj->properties );
-    FREE_HASHTABLE( obj->properties );
-    obj->properties = NULL;
+  if( pobj->properties ) {
+    TRACE_MSG2( "free properties " ZEND_ADDR_FMT " (perl)", (zend_ulong)pobj );
+    zend_hash_destroy( pobj->properties );
+    FREE_HASHTABLE( pobj->properties );
+    pobj->properties = NULL;
   }
 
   /* Forget the object */
-  if( obj->remembered )
+  if( pobj->remembered )
     php_perl_forget_object( object );
 
   /* Remove perl object if not a special operator */
-  if( obj->sv != NULL ) {
-    TRACE_MSG2( "sv ref count is %d", (int)SvREFCNT( obj->sv ) );
-    if( SvREFCNT( obj->sv ) >= 1 ) {
-      TRACE_MSG2( "sv free ref count " ZEND_ADDR_FMT " sv", (zend_ulong)( obj->sv ) );
-      SvREFCNT_dec( obj->sv );
+  if( pobj->sv != NULL ) {
+    TRACE_MSG2( "sv ref count is %d", (int)SvREFCNT( pobj->sv ) );
+    if( SvREFCNT( pobj->sv ) >= 1 ) {
+      TRACE_MSG2( "sv free ref count " ZEND_ADDR_FMT " sv", (zend_ulong)( pobj->sv ) );
+      SvREFCNT_dec( pobj->sv );
     }
-    obj->sv = NULL;
+    pobj->sv = NULL;
   }
 } /* php_perl_dtor_obj */
 
@@ -1988,6 +2015,8 @@ php_perl_clone( php_perl_zop object )
     pobj->remembered    = FALSE;
     pobj->remembered_sv = NULL;
 
+    TRACE_PERL_OBJECT( "clone" );
+
     SvREFCNT_inc( pobj->sv );
 
     new_zo->handlers    = &php_perl_object_handlers;
@@ -2009,7 +2038,6 @@ php_perl_create_object( zend_class_entry *class_type )
   /* Always initialize perl first */
   (void)php_perl_init();
 
-  TRACE_MSG2( "create " ZEND_ADDR_FMT " (perl)", (zend_ulong)pobj );
   TRACE_MSG2( "create " ZEND_ADDR_FMT " (zend)", (zend_ulong)new_zo );
 
   zend_object_std_init( new_zo, class_type );
@@ -2024,6 +2052,8 @@ php_perl_create_object( zend_class_entry *class_type )
   pobj->remembered_sv = NULL;
 
   new_zo->handlers    = &php_perl_object_handlers;
+
+  TRACE_PERL_OBJECT( "create" );
 
   return new_zo;
 } /* php_perl_create_object */
@@ -2043,10 +2073,10 @@ php_perl_iterator_valid( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_valid" );
 
-  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
+  php_perl_object *pobj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
-  return ( obj->properties != NULL &&
-           zend_hash_get_current_data( obj->properties ) != NULL ) ? SUCCESS : FAILURE;
+  return ( pobj->properties != NULL &&
+           zend_hash_get_current_data( pobj->properties ) != NULL ) ? SUCCESS : FAILURE;
 } /* php_perl_iterator_valid */
 
 static zval *
@@ -2054,9 +2084,9 @@ php_perl_iterator_current_data( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_current_data" );
 
-  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
+  php_perl_object *pobj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
-  return obj->properties ? zend_hash_get_current_data( obj->properties ) : NULL;
+  return pobj->properties ? zend_hash_get_current_data( pobj->properties ) : NULL;
 } /* php_perl_iterator_current_data */
 
 static void
@@ -2064,10 +2094,10 @@ php_perl_iterator_current_key( zend_object_iterator *iterator, zval *key )
 {
   TRACE_SUB( "php_perl_iterator_current_key" );
 
-  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
+  php_perl_object *pobj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
-  if( obj->properties )
-    zend_hash_get_current_key_zval( obj->properties, key );
+  if( pobj->properties )
+    zend_hash_get_current_key_zval( pobj->properties, key );
 } /* php_perl_iterator_current_key */
 
 static void
@@ -2075,10 +2105,10 @@ php_perl_iterator_move_forward( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_move_forward" );
 
-  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
+  php_perl_object *pobj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
-  if( obj->properties )
-    zend_hash_move_forward( obj->properties );
+  if( pobj->properties )
+    zend_hash_move_forward( pobj->properties );
 } /* php_perl_iterator_move_forward */
 
 static void
@@ -2086,13 +2116,13 @@ php_perl_iterator_rewind( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_rewind" );
 
-  php_perl_object *obj = php_perl_from_zend( Z_OBJ( iterator->data ) );
+  php_perl_object *pobj = php_perl_from_zend( Z_OBJ( iterator->data ) );
 
-  if( obj->properties ) {
+  if( pobj->properties ) {
     /* removing properties */
-    zend_hash_destroy( obj->properties );
-    FREE_HASHTABLE( obj->properties );
-    obj->properties = NULL;
+    zend_hash_destroy( pobj->properties );
+    FREE_HASHTABLE( pobj->properties );
+    pobj->properties = NULL;
   }
 
 #if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
@@ -2101,8 +2131,8 @@ php_perl_iterator_rewind( zend_object_iterator *iterator )
   php_perl_get_properties( &iterator->data );
 #endif
 
-  if( obj->properties )
-    zend_hash_internal_pointer_reset( obj->properties );
+  if( pobj->properties )
+    zend_hash_internal_pointer_reset( pobj->properties );
 } /* php_perl_iterator_rewind */
 
 static zend_object_iterator_funcs php_perl_iterator_funcs = {
@@ -2283,13 +2313,15 @@ PHP_METHOD( Perl, eval )
     dSP;
     sv = newSVpv( perl_code, perl_code_len );
     if( USED_RET() ) {
-      php_perl_object *obj = php_perl_from_zend( Z_OBJ_P( ZEND_THIS ) );
+      php_perl_object *pobj = php_perl_from_zend( Z_OBJ_P( ZEND_THIS ) );
+
+      TRACE_PERL_OBJECT( "eval" );
 
       TRACE_MSG2( "<this> perl = %d", (int)php_perl_is_our_zval( ZEND_THIS ) );
-      TRACE_MSG2( "<this> context = %d", (int)obj->context );
+      TRACE_MSG2( "<this> context = %d", (int)pobj->context );
       TRACE_MSG2( "return value is perl = %d", (int)php_perl_is_our_zval( return_value ) );
 
-      if( obj->context != PERL_SCALAR ) {
+      if( pobj->context != PERL_SCALAR ) {
         int       count, i;
         I32       ax;
         HashTable var_hash;
@@ -2300,7 +2332,7 @@ PHP_METHOD( Perl, eval )
         ax    = ( sp - PL_stack_base ) + 1;
         zend_hash_init( &var_hash, 0, NULL, NULL, 0 );
         array_init_size( return_value, count );
-        if( obj->context == PERL_ARRAY ) {
+        if( pobj->context == PERL_ARRAY ) {
           for( i = 0; i < count; i++ ) {
             php_perl_sv_to_zval_ref( (SV *)ST( i ), php_perl_array_get_zval( return_value, i ), &var_hash );
           }
@@ -2320,14 +2352,14 @@ PHP_METHOD( Perl, eval )
       else {
         eval_sv( sv, G_SCALAR );
         SPAGAIN;
-        TRACE_MSG2( "scalar (no discard) sv=0x" ZEND_ADDR_FMT, (zend_ulong)sv );
+        TRACE_MSG2( "scalar (no discard) sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
         php_perl_sv_to_zval( POPs, return_value );
         TRACE_MSG( "back" );
       }
       PUTBACK;
     }
     else {
-      TRACE_MSG2( "scalar (discard) sv=0x" ZEND_ADDR_FMT, (zend_ulong)sv );
+      TRACE_MSG2( "scalar (discard) sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
       eval_sv( sv, G_DISCARD );
       TRACE_MSG( "back" );
     }
