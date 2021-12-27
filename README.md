@@ -40,8 +40,8 @@ modifications are released under the same.
 
 Requirements
 ============
-  - PHP 7.3 or 7.4 or later (or so)
-  - Perl 5.8.0 or later (or so) with module ExtUtils::Embed
+  - PHP 7.3/7.4 or later. PHP 8.x with additional caveats
+  - Perl 5.8.0 or later with module ExtUtils::Embed
 
 Quick Install
 =============
@@ -179,23 +179,46 @@ Examples:
       var_dump($x->hash->f());  // call method "f" in hash context
 ```
 
-Known BUGS and limitations
+Known BUGS and Limitations
 ==========================
 
 * Perl objects passed between Perl and PHP by reference all other data type
    (including arrays and hashes) passed by value. So modification of Perl's
    arrays and hashes in PHP will not have effect in Perl.
 ```php
-     $x = $perl->array->x;
-     $x[0] = 1; // Perl's array @x still unmodified
+      $x = $perl->array->x;
+      $x[0] = 1; // Perl's array @x still unmodified
 
-     // But you can use PHP references to do this. The following code works fine.
+      // But you can use PHP references to do this. The following code works fine.
 
-     $y = &$perl->array->y;
-     $y[0] = 1; // Modifies Perl's array @y
+      $y = &$perl->array->y;
+      $y[0] = 1; // Modifies Perl's array @y
 ```
 * pecl/perl can't call internal Perl functions (print, die, ...).
 
-This extension was tested on RedHat Linux 9.0 with PHP 5.0.0RC2-dev (non ZTS build)
+* In PHP 8.x, references to Perl objects are not properly manipulated:
+```php
+      $perl->y = 1;
+      $x = &$perl->y;
+      $x = 2;
+      var_dump( $perl->y ); // Should be int(2), but is int(1)
+```
+
+Testing
+=======
+
+The status of the most recent testing follows:
+
+  | OS               | PHP Version | Perl Version | Status                                          |
+  | ---------------- | ----------- | ------------ | ----------------------------------------------- |
+  | Ubuntu 18.04 LTS | 7.3.33      | 5.26.1       | All Passed                                      |
+  | Ubuntu 20.04 LTS | 7.4.26      | 5.30.0       | All Passed                                      |
+  | Ubuntu 20.04 LTS | 8.0.13      | 5.30.0       | PHP 8.x References to Perl variables not usable |
+  | Ubuntu 20.04 LTS | 8.1.0       | 5.30.0       | PHP 8.x References to Perl variables not usable |
+  | Fedora 30        | 7.3.18      | 5.28.2       | All Passed                                      |
+  | Fedora 34        | 7.4.27      | 5.32.1       | All Passed                                      |
+  | Fedora 35        | 8.0.13      | 5.34.0       | PHP 8.x References to Perl variables not usable |
+
+The original extension was tested on RedHat Linux 9.0 with PHP 5.0.0RC2-dev (non ZTS build)
 and perl-5.8.0 (installed from RPM) and on Windows 2000 with PHP-5.0.0RC2-dev
 (ZTS build) and perl-5.8.0.
