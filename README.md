@@ -14,14 +14,15 @@ This extension allows embedding of Perl Interpreter into PHP7 to:
 
 About the Updates
 =================
-I have modified the original perl-1.0.1 extension source to run
-with PHP 7. I have tested it with PHP 7.3.6 with Perl 5.28.2 on
-Fedora 30. The source has been extensively modified from the PHP
-5 extension, and I have changed the version to start at 1.20.0.
+I have modified the version 1.0.1 php-perl extension source, which
+ran with PHP 5, to run with PHP 7.  The source has been modified
+extensively. I started numbering the new versions from 1.20.0. The
+updates have never been tested on any OS other than Linux, so
+any other OS is a YMMV.
 
 The syntax and semantics have not changed nor have the limitations.
 
-The primary modifications were:
+The primary changes were:
 
   - Adapt to the newer PHP object model.
   - Modify the use of binary hashes (no longer supported).
@@ -29,11 +30,11 @@ The primary modifications were:
   - General PHP 5 to 7 changes.
   - Miscellaneous updating of the code (4+ years of changes).
   - Modify various tests primarily due to var_dump
-      not sorting hashes consistently. Added a few tests.
-      The tests sometime use Perl's Data::Dumper to get
-      around the lack of var_dump hash sorting. Converted
-      about 4 tests to XFAIL (known limitations).
-  - N.B.: The code is no longer compatible with PHP 5.
+    not sorting hashes consistently. Added a few tests.
+    The tests sometime use Perl's Data::Dumper to get
+    around the lack of var_dump hash sorting.
+  - Converted about 4 tests to XFAIL (known limitations).
+  - N.B.: The code is no longer compatible with PHP 5
 
 The original source was released under PHP v3.0 license and my
 modifications are released under the same.
@@ -124,7 +125,7 @@ Examples:
       $perl->eval('$z='.$x.'+'.$y.';');
 ```
 
-By default, Perl code is evaluated in scalar context, but it can be 
+By default, Perl code is evaluated in scalar context, but it can be
 evaluated in array or hash context too.
 
 Examples:
