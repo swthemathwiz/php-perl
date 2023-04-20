@@ -9,6 +9,7 @@ on:
         default: 'ubuntu-latest'
         options:
         - 'ubuntu-latest'
+        - 'ubuntu-22.04'
         - 'ubuntu-20.04'
         - 'ubuntu-18.04'
       phpversion:
@@ -19,7 +20,8 @@ on:
         - '7.3'
         - '7.4'
         - '8.0'
-        - '8.1'  
+        - '8.1'
+        - '8.2'
       runtests:
         description: 'Run Tests'
         type: boolean
