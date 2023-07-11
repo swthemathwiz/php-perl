@@ -1,5 +1,5 @@
-PHP Perl Extension (Updated for PHP7)
-=====================================
+PHP Perl Extension (Updated for PHP7 and PHP8)
+==============================================
 
 What is the PHP Perl Extension?
 ===============================
@@ -15,7 +15,7 @@ This extension allows embedding of Perl Interpreter into PHP7 to:
 About the Updates
 =================
 I have modified the version 1.0.1 php-perl extension source, which
-ran with PHP 5, to run with PHP 7.  The source has been modified
+ran with PHP 5, to run with PHP 7+.  The source has been modified
 extensively. I started numbering the new versions from 1.20.0. The
 updates have never been tested on any OS other than Linux, so
 any other OS is a YMMV.
@@ -216,9 +216,11 @@ The status of the most recent testing follows:
   | Ubuntu 20.04 LTS | 7.4.26      | 5.30.0       | All Passed                                      |
   | Ubuntu 20.04 LTS | 8.0.13      | 5.30.0       | PHP 8.x References to Perl variables not usable |
   | Ubuntu 20.04 LTS | 8.1.0       | 5.30.0       | PHP 8.x References to Perl variables not usable |
+  | Ubuntu 22.04 LTS | 8.1.2       | 5.34.0       | PHP 8.x References to Perl variables not usable |
   | Fedora 30        | 7.3.18      | 5.28.2       | All Passed                                      |
   | Fedora 34        | 7.4.27      | 5.32.1       | All Passed                                      |
   | Fedora 35        | 8.0.13      | 5.34.0       | PHP 8.x References to Perl variables not usable |
+  | Fedora 38        | 8.2.8       | 5.36.1       | PHP 8.x References to Perl variables not usable |
 
 The original extension was tested on RedHat Linux 9.0 with PHP 5.0.0RC2-dev (non ZTS build)
 and perl-5.8.0 (installed from RPM) and on Windows 2000 with PHP-5.0.0RC2-dev
