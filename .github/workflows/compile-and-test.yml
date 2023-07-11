@@ -11,13 +11,11 @@ on:
         - 'ubuntu-latest'
         - 'ubuntu-22.04'
         - 'ubuntu-20.04'
-        - 'ubuntu-18.04'
       phpversion:
         description: 'PHP Version'
         type: choice
         default: '7.4'
         options:
-        - '7.3'
         - '7.4'
         - '8.0'
         - '8.1'
