@@ -887,12 +887,14 @@ php_perl_call_constructor( const char *class_name,
   dSP;                                                           /* initialize stack pointer         */
 
   int i;
+  TRACE_ASSERT( strlen(class_name) == class_name_len );
+  TRACE_ASSERT( strlen(constructor) == constructor_len );
 
   strcpy( func, class_name );
   strcpy( func + class_name_len, "::" );
   strcpy( func + class_name_len + 2, constructor );
 
-  TRACE_MSG2( "call constructor '%s'", func );
+  TRACE_MSG3( "call constructor '%s' (%d args)", func, argc );
 
   ENTER;                                                         /* everything created after here    */
   SAVETMPS;                                                      /* ...is a temporary variable.      */
@@ -1652,8 +1654,6 @@ PHP_METHOD( Perl, __construct )
 {
   TRACE_SUB( "PHP_METHOD: Perl::__construct" );
 
-  int argc = EX_NUM_ARGS();
-
   /* <this> should be a freshly initialized php_perl object */
   TRACE_ASSERT( php_perl_is_our_zval( ZEND_THIS ) );
   TRACE_ASSERT( php_perl_from_zend( Z_OBJ_P( ZEND_THIS ) )->sv == NULL );
@@ -1663,38 +1663,27 @@ PHP_METHOD( Perl, __construct )
   TRACE_ASSERT( php_perl_from_zend( Z_OBJ_P( ZEND_THIS ) )->kind == PERL_NORMAL );
   TRACE_ASSERT( Z_OBJ_HT_P( ZEND_THIS ) == &php_perl_object_handlers );
 
-  TRACE_MSG2( "argc = %d", argc );
+  TRACE_MSG2( "argc = %d", (int)EX_NUM_ARGS() );
   /* No arguments ... this is a call to new Perl(), and we are done. */
-  if( argc != 0 ) {
+  if( EX_NUM_ARGS() != 0 ) {
     char  *perl_class           = NULL;
     size_t perl_class_len       = 0;
     char  *perl_constructor     = "new";
     size_t perl_constructor_len = 3;
-    zval  *argv                 = NULL;
+    int    non_class_argc       = 0;
+    zval  *non_class_argv       = NULL;
     SV    *sv;
 
-    ZEND_PARSE_PARAMETERS_START(0, EX_NUM_ARGS())
+    ZEND_PARSE_PARAMETERS_START(0, -1)
       Z_PARAM_OPTIONAL
       Z_PARAM_STRING(perl_class, perl_class_len)
       Z_PARAM_STRING(perl_constructor, perl_constructor_len)
+      Z_PARAM_VARIADIC('*', non_class_argv, non_class_argc)
     ZEND_PARSE_PARAMETERS_END();
-
-    argv = argc > 2 ? (zval *)safe_emalloc( argc, sizeof( zval ), 0 ) : NULL;
-    if( argv ) {
-      if( zend_get_parameters_array_ex( argc, argv ) == FAILURE ) {
-        efree( argv );
-        return;
-      }
-    }
 
     sv = php_perl_call_constructor( perl_class, perl_class_len,
                                     perl_constructor, perl_constructor_len,
-                                    argc - 2, argv + 2 );
-
-    if( argv != NULL ) {
-      efree( argv );
-      argv = NULL;
-    }
+                                    non_class_argc, non_class_argv );
 
     if( SvTRUE( ERRSV ) ) {
       STRLEN na;
