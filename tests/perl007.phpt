@@ -11,7 +11,7 @@ var_dump($perl->eval('$a = $s{$d}.'));
 echo "ok\n";
 ?>
 --EXPECTF--
-Fatal error: Uncaught PerlException: [perl] eval error: syntax error at (eval %d) line %d, at EOF
+Fatal error: Uncaught PerlException: [perl] eval error: syntax error at (eval %d) line %d, at EOF%A
  in %sperl007.php:3
 Stack trace:
 #0 %sperl007.php(3): Perl->eval('$a = $s{$d}.')

@@ -26,13 +26,13 @@ $perl->f($b);
 $perl->f($c);
 echo "ok\n";
 ?>
---EXPECTF--
-$VAR1 = 1;
-$VAR1 = 'a';
-$VAR1 = 1;
-$VAR1 = '';
-$VAR1 = undef;
-$VAR1 = 1;
-$VAR1 = 1;
-$VAR1 = undef;
+--EXPECTREGEX--
+\$VAR1 = 1;
+\$VAR1 = 'a';
+\$VAR1 = ((1)|(!!1));
+\$VAR1 = (('')|(!!0));
+\$VAR1 = undef;
+\$VAR1 = 1;
+\$VAR1 = 1;
+\$VAR1 = undef;
 ok

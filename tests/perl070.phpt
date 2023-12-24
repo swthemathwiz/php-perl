@@ -13,4 +13,4 @@ try {
 }
 ?>
 --EXPECTF--
-Perl error: [perl] eval error: syntax error at (eval %d) line %d, at EOF
+Perl error: [perl] eval error: syntax error at (eval %d) line %d, at EOF%A
