@@ -37,11 +37,11 @@ $x->s++;
 var_dump($x->s);
 echo "ok\n";
 ?>
---EXPECT--
+--EXPECTF--
 int(24649)
 int(2073)
 int(17)
-string(6) "strinh"
+string(6) "strinh"%w%r(Deprecated: Decrement on non-numeric string has no effect.*)?%r
 string(6) "strinh"
 string(6) "strini"
 ok
