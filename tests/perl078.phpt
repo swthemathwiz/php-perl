@@ -28,7 +28,7 @@ $x->y ^= 0x3040;
 var_dump($x->y);
 $x->z &= 0x0099;
 var_dump($x->z);
-// N.B.: strings increment but not decrement
+// N.B.: strings increment in PHP < 8.5 but not decrement
 $x->s++;
 var_dump($x->s);
 $x->s--;
@@ -41,8 +41,8 @@ echo "ok\n";
 int(24649)
 int(2073)
 int(17)
-string(6) "strinh"%w%r(Deprecated: Decrement on non-numeric string has no effect.*)?%r
-string(6) "strinh"
-string(6) "strini"
+%r\w*(\nDeprecated: Increment on non-numeric string.*)?\w*%rstring(6) "strinh"
+%r\w*(\nDeprecated: Decrement on non-numeric string.*)?\w*%rstring(6) "strinh"
+%r\w*(\nDeprecated: Increment on non-numeric string.*)?\w*%rstring(6) "strini"
 ok
 

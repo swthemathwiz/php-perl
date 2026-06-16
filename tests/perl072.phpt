@@ -19,4 +19,4 @@ $perl->f($a);
 echo "error\n";
 ?>
 --EXPECTF--
-Fatal error: [perl] Can't convert class 'Dummy' object to Perl in %sperl072.php on line 12
+Fatal error: [perl] Can't convert class 'Dummy' object to Perl in %sperl072.php on line %d%r(\w*\nStack trace:.*)?%r
