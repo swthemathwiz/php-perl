@@ -224,6 +224,7 @@ The status of the most recent testing follows:
   | Fedora 38        | 8.2.8       | 5.36.1       | PHP 8.x References to Perl variables not usable |
   | Fedora 39        | 8.2.13      | 5.38.2       | PHP 8.x References to Perl variables not usable |
   | Fedora 40        | 8.3.12      | 5.38.2       | PHP 8.x References to Perl variables not usable |
+  | Fedora 44        | 8.5.7       | 5.42.2       | PHP 8.x References to Perl variables not usable |
 
 The original extension was tested on RedHat Linux 9.0 with PHP 5.0.0RC2-dev (non ZTS build)
 and perl-5.8.0 (installed from RPM) and on Windows 2000 with PHP-5.0.0RC2-dev
