@@ -41,7 +41,7 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Install PHP and Perl Development
       env:
         PHP_VERSION: "${{ github.event.inputs.phpversion }}"
