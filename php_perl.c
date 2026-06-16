@@ -654,15 +654,16 @@ php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
 
     case IS_ARRAY:
       {
-        SV        *sv;
-        HashTable *ht      = Z_ARRVAL_P( zv );
-        zend_bool  is_hash = FALSE;
+        SV          *sv;
+        HashTable   *ht      = Z_ARRVAL_P( zv );
+        HashPosition hpos;
+        zend_bool    is_hash = FALSE;
 
         /* checking if 'hv' is array or hash */
-        for( zend_hash_internal_pointer_reset( ht );
-             zend_hash_get_current_data( ht ) != NULL;
-             zend_hash_move_forward( ht ) ) {
-          if( zend_hash_get_current_key_type( ht ) == HASH_KEY_IS_STRING ) {
+        for( zend_hash_internal_pointer_reset_ex( ht, &hpos );
+             zend_hash_get_current_data_ex( ht, &hpos ) != NULL;
+             zend_hash_move_forward_ex( ht, &hpos ) ) {
+          if( zend_hash_get_current_key_type_ex( ht, &hpos ) == HASH_KEY_IS_STRING ) {
             is_hash = TRUE;
             break;
           }
@@ -679,19 +680,19 @@ php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
           /* do this before return in case a hash element references itself */
           binary_hash_add( var_hash, zv, sv );
 
-          for( zend_hash_internal_pointer_reset( ht );
-               zend_hash_get_current_data( ht ) != NULL;
-               zend_hash_move_forward( ht ) ) {
+          for( zend_hash_internal_pointer_reset_ex( ht, &hpos );
+               zend_hash_get_current_data_ex( ht, &hpos ) != NULL;
+               zend_hash_move_forward_ex( ht, &hpos ) ) {
             zend_string *key;
             zend_ulong   index;
 
-            if( zend_hash_get_current_key( ht, &key, &index ) != HASH_KEY_IS_STRING ) {
+            if( zend_hash_get_current_key_ex( ht, &key, &index, &hpos ) != HASH_KEY_IS_STRING ) {
               char xkey[ZEND_LTOA_BUF_LEN];
               zend_sprintf( xkey, ZEND_ULONG_FMT, index );
-              hv_store( hv, xkey, strlen( xkey ), php_perl_zval_to_sv_ref( zend_hash_get_current_data( ht ), var_hash ), 0 );
+              hv_store( hv, xkey, strlen( xkey ), php_perl_zval_to_sv_ref( zend_hash_get_current_data_ex( ht, &hpos ), var_hash ), 0 );
             }
             else {
-              hv_store( hv, ZSTR_VAL( key ), ZSTR_LEN( key ), php_perl_zval_to_sv_ref( zend_hash_get_current_data( ht ), var_hash ), 0 );
+              hv_store( hv, ZSTR_VAL( key ), ZSTR_LEN( key ), php_perl_zval_to_sv_ref( zend_hash_get_current_data_ex( ht, &hpos ), var_hash ), 0 );
             }
           }
         }
@@ -704,14 +705,14 @@ php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
           /* do this before return in case an array element references itself */
           binary_hash_add( var_hash, zv, sv );
 
-          for( zend_hash_internal_pointer_reset( ht );
-               zend_hash_get_current_data( ht ) != NULL;
-               zend_hash_move_forward( ht ) ) {
+          for( zend_hash_internal_pointer_reset_ex( ht, &hpos );
+               zend_hash_get_current_data_ex( ht, &hpos ) != NULL;
+               zend_hash_move_forward_ex( ht, &hpos ) ) {
             zend_string *key;
             zend_ulong   index;
 
-            if( zend_hash_get_current_key( ht, &key, &index ) == HASH_KEY_IS_LONG )
-              av_store( av, index, php_perl_zval_to_sv_ref( zend_hash_get_current_data( ht ), var_hash ) );
+            if( zend_hash_get_current_key_ex( ht, &key, &index, &hpos ) == HASH_KEY_IS_LONG )
+              av_store( av, index, php_perl_zval_to_sv_ref( zend_hash_get_current_data_ex( ht, &hpos ), var_hash ) );
           }
         }
         return sv;
@@ -1405,16 +1406,19 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
     if( pobj->context == PERL_ARRAY ) {
       AV *av = get_av( ZSTR_VAL( member ), TRUE );
       if( Z_TYPE_P( value ) == IS_ARRAY ) {
-        HashTable *ht = Z_ARRVAL_P( value );
-        HashTable  var_hash;
+        HashTable   *ht = Z_ARRVAL_P( value );
+        HashPosition hpos;
+        HashTable    var_hash;
 
         zend_hash_init( &var_hash, 0, NULL, NULL, 0 );
-        for( zend_hash_internal_pointer_reset( ht ); zend_hash_get_current_data( ht ) != NULL; zend_hash_move_forward( ht ) ) {
+        for( zend_hash_internal_pointer_reset_ex( ht, &hpos );
+             zend_hash_get_current_data_ex( ht, &hpos ) != NULL;
+             zend_hash_move_forward_ex( ht, &hpos ) ) {
           zend_string *key;
           zend_ulong   index;
 
-          if( zend_hash_get_current_key( ht, &key, &index ) != HASH_KEY_IS_STRING ) {
-            result = zend_hash_get_current_data( ht );
+          if( zend_hash_get_current_key_ex( ht, &key, &index, &hpos ) != HASH_KEY_IS_STRING ) {
+            result = zend_hash_get_current_data_ex( ht, &hpos );
             av_store( av, index, php_perl_zval_to_sv_ref( result, &var_hash ) );
           }
         }
@@ -1427,22 +1431,25 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
     else if( pobj->context == PERL_HASH ) {
       HV *hv = get_hv( ZSTR_VAL( member ), TRUE );
       if( Z_TYPE_P( value ) == IS_ARRAY ) {
-        HashTable *ht = Z_ARRVAL_P( value );
-        HashTable  var_hash;
+        HashTable   *ht = Z_ARRVAL_P( value );
+        HashPosition hpos;
+        HashTable    var_hash;
 
         zend_hash_init( &var_hash, 0, NULL, NULL, 0 );
-        for( zend_hash_internal_pointer_reset( ht ); zend_hash_get_current_data( ht ) != NULL; zend_hash_move_forward( ht ) ) {
+        for( zend_hash_internal_pointer_reset_ex( ht, &hpos );
+             zend_hash_get_current_data_ex( ht, &hpos ) != NULL;
+             zend_hash_move_forward_ex( ht, &hpos ) ) {
           zend_string *key;
           zend_ulong   index;
 
-          if( zend_hash_get_current_key( ht, &key, &index ) != HASH_KEY_IS_STRING ) {
+          if( zend_hash_get_current_key_ex( ht, &key, &index, &hpos ) != HASH_KEY_IS_STRING ) {
             char xkey[ZEND_LTOA_BUF_LEN];
             zend_sprintf( xkey, ZEND_ULONG_FMT, index );
-            result = zend_hash_get_current_data( ht );
+            result = zend_hash_get_current_data_ex( ht, &hpos );
             hv_store( hv, xkey, strlen( xkey ), php_perl_zval_to_sv_ref( result, &var_hash ), 0 );
           }
           else {
-            result = zend_hash_get_current_data( ht );
+            result = zend_hash_get_current_data_ex( ht, &hpos );
             hv_store( hv, ZSTR_VAL( key ), ZSTR_LEN( key ), php_perl_zval_to_sv_ref( result, &var_hash ), 0 );
           }
         }
@@ -2180,7 +2187,11 @@ PHP_MINIT_FUNCTION( perl )
 
   /* Exception raised. */
   INIT_CLASS_ENTRY( ce, "PerlException", NULL );
+#if PHP_VERSION_ID >= 80500
+  php_perl_exception_ce                         = zend_register_internal_class_ex( &ce, zend_ce_exception );
+#else
   php_perl_exception_ce                         = zend_register_internal_class_ex( &ce, zend_exception_get_default() );
+#endif
 
   /* Class of perl objects. */
   INIT_CLASS_ENTRY( ce, "Perl", perl_methods );
