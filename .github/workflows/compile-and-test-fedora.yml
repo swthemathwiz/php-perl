@@ -46,7 +46,7 @@ jobs:
       uses: actions/checkout@v6
     - name: Install PHP and Perl Development
       run: |
-        dnf install -y php-cli php-devel perl-devel make gcc
+        dnf install -y php-cli php-devel perl-devel make gcc perl-ExtUtils-Embed
     - name: Establish OS, PHP and Perl Versions
       run: |
         grep PRETTY_NAME /etc/os-release
