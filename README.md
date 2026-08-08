@@ -1,53 +1,53 @@
-PHP Perl Extension (Updated for PHP7 and PHP8)
-==============================================
+PHP Perl Extension (Updated for PHP 7 and PHP 8)
+================================================
 
 What is the PHP Perl Extension?
 ===============================
 
-This extension allows embedding of Perl Interpreter into PHP7 to:
+This extension allows embedding a Perl interpreter into PHP 7+, enabling you to:
 
-  * execute Perl files
-  * evaluate Perl code
-  * access values of Perl variables
-  * call Perl subroutines
-  * instantiate and manipulate of Perl objects
+  * Execute Perl files
+  * Evaluate Perl code
+  * Access values of Perl variables
+  * Call Perl subroutines
+  * Instantiate and manipulate Perl objects
 
 About the Updates
 =================
-I have modified the version 1.0.1 php-perl extension source, which
-ran with PHP 5, to run with PHP 7+.  The source has been modified
-extensively. I started numbering the new versions from 1.20.0. The
-updates have never been tested on any OS other than Linux, so
-any other OS is a YMMV.
+I have updated version 1.0.1 of the php-perl extension source (built for PHP 5)
+to support PHP 7+.  The source has been modified extensively. I started numbering
+the new versions from 1.20.0. The updates have never been tested on any OS other
+than Linux, so your mileage may vary on other operating systems.
 
-The syntax and semantics have not changed nor have the limitations.
+Except as noted, the syntax and semantics have not changed, and
+the limitations of the PHP 5 version are still present.
 
 The primary changes were:
 
-  - Adapt to the newer PHP object model.
-  - Modify the use of binary hashes (no longer supported).
-  - Delete the older tasking model code.
+  - Adapted to the newer PHP object model.
+  - Modified the use of binary hashes (no longer supported).
+  - Deleted the older tasking model code.
   - General PHP 5 to 7 changes.
-  - Miscellaneous updating of the code (4+ years of changes).
-  - Modify various tests primarily due to var_dump
-    not sorting hashes consistently. Added a few tests.
-    The tests sometime use Perl's Data::Dumper to get
-    around the lack of var_dump hash sorting.
+  - Updated miscellaneous code (4+ years of API changes).
+  - Modified various tests, primarily because `var_dump` does not sort hashes
+    consistently. Some tests use Perl's `Data::Dumper` to get around
+    the lack of consistent hash sorting in `var_dump`.
+  - Added a few tests.
   - Converted about 4 tests to XFAIL (known limitations).
-  - N.B.: The code is no longer compatible with PHP 5
+  - N.B.: The code is no longer compatible with PHP 5.
 
-The original source was released under PHP v3.0 license and my
-modifications are released under the same.
+The original source was released under the PHP v3.0 license, and my
+modifications are released under the same license.
 
 Requirements
 ============
-  - PHP 7.3/7.4 or later. PHP 8.x with additional caveats
-  - Perl 5.8.0 or later with module ExtUtils::Embed
+  - PHP 7.3/7.4 or later; PHP 8.x with additional caveats
+  - Perl 5.8.0 or later with the `ExtUtils::Embed` module
 
 Quick Install
 =============
 
-Step 1. Compile this extension. PHP_PREFIX and PERL_PREFIX must point to real
+Step 1. Compile this extension. `PHP_PREFIX` and `PERL_PREFIX` must point to valid
         PHP and Perl installation prefixes:
 ```sh
         export PHP_PREFIX="/usr"
@@ -60,42 +60,42 @@ Step 2. Install the extension (this step can require root privileges):
 ```sh
         make install
 ```
-Step 3. Add Perl extension into your php.ini (this step can require root privileges)
-```
+Step 3. Add the Perl extension to your `php.ini` (this step can require root privileges):
+```ini
         extension=perl.so
 ```
 
 Windows Installation Notes
 ==========================
 
-Step 1. Download ActivePerl binaries for Windows from [ActiveState](http://www.activestate.com/products/perl/)
+Step 1. Download ActivePerl binaries for Windows from [ActiveState](https://www.activestate.com/products/perl/)
         and install them.
 
-Step 2. Put this extension into corresponding PHP source tree (into ext/perl)
+Step 2. Put this extension's source into the corresponding PHP source tree (as `ext/perl`).
 
-Step 3. Compile the extension
-```
+Step 3. Compile the extension:
+```cmd
         SET PERL_HOME=C:\perl
         msdev perl.dsp /MAKE "perl - Win32 Release_TS"
 ```
-Step 4. Copy php_perl.dll (from Release_TS) to PHP extension dir
+Step 4. Copy `php_perl.dll` (from `Release_TS`) to the PHP extension directory.
 
-Step 5. Add Perl extension into your php.ini
-```
+Step 5. Add the Perl extension to your `php.ini`:
+```ini
         extension=php_perl.dll
 ```
 
 PHP API
 =======
 
-new Perl()
-----------
-Creates Perl interpreter. It allows:
+`new Perl()`
+------------
+Creates a Perl interpreter. It allows:
 
-  * reading and modifying of Perl variables
-  * calling Perl functions
-  * evaluating Perl code
-  * loading and executing external Perl files
+  * Reading and modifying Perl variables
+  * Calling Perl functions
+  * Evaluating Perl code
+  * Loading and executing external Perl files
 
 Examples:
 ```php
@@ -112,10 +112,10 @@ Examples:
       echo $perl->{'Digest::MD5::md5_hex'}('Hello');
 ```
 
-Perl->eval($perl_code)
-----------------------
-Evaluates Perl code and returns result. If Perl code is invalid it will
-throw PHP exception.
+`$perl->eval($perl_code)`
+-----------------------
+Evaluates Perl code and returns the result. If the Perl code is invalid, the method
+will throw a PHP exception.
 
 Examples:
 ```php
@@ -126,7 +126,7 @@ Examples:
 ```
 
 By default, Perl code is evaluated in scalar context, but it can be
-evaluated in array or hash context too.
+evaluated in array or hash contexts too.
 
 Examples:
 ```php
@@ -137,10 +137,10 @@ Examples:
       var_dump($perl->hash->eval('("a","b","c")'));  // eval in hash context
 ```
 
-Perl->require($perl_file_name)
-------------------------------
-Loads and executes Perl file. It doesn't return any value. If required Perl
-file doesn't exist or invalid it will throw PHP exception.
+`$perl->require($perl_file_name)`
+-------------------------------
+Loads and executes a Perl file. It does not return any value. If the required Perl
+file does not exist or is invalid, the method will throw a PHP exception.
 
 Examples:
 ```php
@@ -148,15 +148,15 @@ Examples:
       $perl->require('test.pl');
 ```
 
-new Perl($perl_class_name[, $constructor = "new"[, ...]])
------------------------------------------------------
-Creates an instance of Perl class through calling specified constructor
-or "new" if constructor is not specified. Additional parameters passed
+`new Perl($perl_class_name[, $constructor = "new"[, ...]])`
+-----------------------------------------------------------
+Creates an instance of a Perl class by calling a specified constructor
+(defaulting to "new" if omitted). Additional parameters are passed
 to Perl's constructor. The created object allows:
 
-  * reading and modifying of object properties
-  * calling methods
-  * cloning
+  * Reading and modifying object properties
+  * Calling methods
+  * Cloning
 
 Examples:
 ```php
@@ -167,7 +167,7 @@ Examples:
       echo $z->method(1,2,3);
 ```
 
-Methods can be called in array or hash context in the same way as Perl
+Methods can be called in array or hash contexts in the same way as Perl
 functions, but all properties are accessible directly (without array or
 hash modifiers).
 
@@ -180,24 +180,24 @@ Examples:
       var_dump($x->hash->f());  // call method "f" in hash context
 ```
 
-Known BUGS and Limitations
+Known Bugs and Limitations
 ==========================
 
-* Perl objects passed between Perl and PHP by reference all other data type
-   (including arrays and hashes) passed by value. So modification of Perl's
-   arrays and hashes in PHP will not have effect in Perl.
+* Perl objects are passed between Perl and PHP by reference; all other data
+  types (including arrays and hashes) are passed by value. Therefore, modifying Perl's
+  arrays and hashes in PHP does not change the corresponding Perl variables.
 ```php
       $x = $perl->array->x;
       $x[0] = 1; // Perl's array @x still unmodified
 
-      // But you can use PHP references to do this. The following code works fine.
+      // However, you can use PHP references to achieve this:
 
       $y = &$perl->array->y;
       $y[0] = 1; // Modifies Perl's array @y
 ```
-* pecl/perl can't call internal Perl functions (print, die, ...).
+* The extension cannot call internal Perl functions (`print`, `die`, ...).
 
-* In PHP 8.x, references to Perl objects are not properly manipulated:
+* In PHP 8.x, references to Perl variables are not properly handled:
 ```php
       $perl->y = 1;
       $x = &$perl->y;
@@ -227,6 +227,6 @@ The status of the most recent testing follows:
   | Fedora 40        | 8.3.12      | 5.38.2       | PHP 8.x References to Perl variables not usable |
   | Fedora 44        | 8.5.7       | 5.42.2       | PHP 8.x References to Perl variables not usable |
 
-The original extension was tested on RedHat Linux 9.0 with PHP 5.0.0RC2-dev (non ZTS build)
-and perl-5.8.0 (installed from RPM) and on Windows 2000 with PHP-5.0.0RC2-dev
-(ZTS build) and perl-5.8.0.
+The original extension was tested on Red Hat Linux 9.0 with PHP 5.0.0RC2-dev (non-ZTS build)
+and Perl 5.8.0 (installed from RPM), and on Windows 2000 with PHP 5.0.0RC2-dev
+(ZTS build) and Perl 5.8.0.
