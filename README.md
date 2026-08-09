@@ -50,19 +50,19 @@ Quick Install
 Step 1. Compile this extension. `PHP_PREFIX` and `PERL_PREFIX` must point to valid
         PHP and Perl installation prefixes:
 ```sh
-        export PHP_PREFIX="/usr"
-        export PERL_PREFIX="/usr"
-        $PHP_PREFIX/bin/phpize
-        ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
-        make
+    export PHP_PREFIX="/usr"
+    export PERL_PREFIX="/usr"
+    $PHP_PREFIX/bin/phpize
+    ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
+    make
 ```
 Step 2. Install the extension (this step can require root privileges):
 ```sh
-        make install
+    make install
 ```
 Step 3. Add the Perl extension to your `php.ini` (this step can require root privileges):
 ```ini
-        extension=perl.so
+    extension=perl.so
 ```
 
 Windows Installation Notes
@@ -75,14 +75,14 @@ Step 2. Put this extension's source into the corresponding PHP source tree (as `
 
 Step 3. Compile the extension:
 ```cmd
-        SET PERL_HOME=C:\perl
-        msdev perl.dsp /MAKE "perl - Win32 Release_TS"
+    SET PERL_HOME=C:\perl
+    msdev perl.dsp /MAKE "perl - Win32 Release_TS"
 ```
 Step 4. Copy `php_perl.dll` (from `Release_TS`) to the PHP extension directory.
 
 Step 5. Add the Perl extension to your `php.ini`:
 ```ini
-        extension=php_perl.dll
+    extension=php_perl.dll
 ```
 
 PHP API
@@ -99,17 +99,17 @@ Creates a Perl interpreter. It allows:
 
 Examples:
 ```php
-      $perl = new Perl();
-      var_dump($perl->x);        // print scalar Perl variable - $x
-      var_dump($perl->array->x); // print array Perl variable - @x
-      var_dump($perl->hash->x);  // print hash Perl variable - %x
-      $perl->func();             // call Perl function 'func' in void context
-      $x = $perl->func();        // call Perl function 'func' in scalar context
-      $y = $perl->array->func(); // call Perl function 'func' in array context
-      $y = $perl->hash->func();  // call Perl function 'func' in hash context
+    $perl = new Perl();
+    var_dump($perl->x);        // print scalar Perl variable - $x
+    var_dump($perl->array->x); // print array Perl variable - @x
+    var_dump($perl->hash->x);  // print hash Perl variable - %x
+    $perl->func();             // call Perl function 'func' in void context
+    $x = $perl->func();        // call Perl function 'func' in scalar context
+    $y = $perl->array->func(); // call Perl function 'func' in array context
+    $y = $perl->hash->func();  // call Perl function 'func' in hash context
 
-      $perl->eval('use Digest::MD5');
-      echo $perl->{'Digest::MD5::md5_hex'}('Hello');
+    $perl->eval('use Digest::MD5');
+    echo $perl->{'Digest::MD5::md5_hex'}('Hello');
 ```
 
 `$perl->eval($perl_code)`
@@ -119,10 +119,10 @@ will throw a PHP exception.
 
 Examples:
 ```php
-      $perl = new Perl();
-      $perl->eval('require "test.pl";');
-      echo $perl->eval($x.'+'.$y.';');
-      $perl->eval('$z='.$x.'+'.$y.';');
+    $perl = new Perl();
+    $perl->eval('require "test.pl";');
+    echo $perl->eval($x.'+'.$y.';');
+    $perl->eval('$z='.$x.'+'.$y.';');
 ```
 
 By default, Perl code is evaluated in scalar context, but it can be
@@ -130,11 +130,11 @@ evaluated in array or hash contexts too.
 
 Examples:
 ```php
-      $perl = new Perl();
-      $perl->eval('("a","b","c")');                  // eval in void context
-      var_dump($perl->eval('("a","b","c")'));        // eval in scalar context
-      var_dump($perl->array->eval('("a","b","c")')); // eval in array context
-      var_dump($perl->hash->eval('("a","b","c")'));  // eval in hash context
+    $perl = new Perl();
+    $perl->eval('("a","b","c")');                  // eval in void context
+    var_dump($perl->eval('("a","b","c")'));        // eval in scalar context
+    var_dump($perl->array->eval('("a","b","c")')); // eval in array context
+    var_dump($perl->hash->eval('("a","b","c")'));  // eval in hash context
 ```
 
 `$perl->require($perl_file_name)`
@@ -144,8 +144,8 @@ file does not exist or is invalid, the method will throw a PHP exception.
 
 Examples:
 ```php
-      $perl = new Perl();
-      $perl->require('test.pl');
+    $perl = new Perl();
+    $perl->require('test.pl');
 ```
 
 `new Perl($perl_class_name[, $constructor = "new"[, ...]])`
@@ -160,11 +160,11 @@ to Perl's constructor. The created object allows:
 
 Examples:
 ```php
-      $x = new Perl("Test");
-      $y = new Perl("Test","copy",$x);
-      $z = clone $y;
-      echo $z->property;
-      echo $z->method(1,2,3);
+    $x = new Perl("Test");
+    $y = new Perl("Test","copy",$x);
+    $z = clone $y;
+    echo $z->property;
+    echo $z->method(1,2,3);
 ```
 
 Methods can be called in array or hash contexts in the same way as Perl
@@ -173,11 +173,11 @@ hash modifiers).
 
 Examples:
 ```php
-      $x = new Perl("Test");
-      $x->f();                  // call method "f" in void context
-      var_dump($x->f());        // call method "f" in scalar context
-      var_dump($x->array->f()); // call method "f" in array context
-      var_dump($x->hash->f());  // call method "f" in hash context
+    $x = new Perl("Test");
+    $x->f();                  // call method "f" in void context
+    var_dump($x->f());        // call method "f" in scalar context
+    var_dump($x->array->f()); // call method "f" in array context
+    var_dump($x->hash->f());  // call method "f" in hash context
 ```
 
 Known Bugs and Limitations
@@ -187,22 +187,22 @@ Known Bugs and Limitations
   types (including arrays and hashes) are passed by value. Therefore, modifying Perl's
   arrays and hashes in PHP does not change the corresponding Perl variables.
 ```php
-      $x = $perl->array->x;
-      $x[0] = 1; // Perl's array @x still unmodified
+        $x = $perl->array->x;
+        $x[0] = 1; // Perl's array @x still unmodified
 
-      // However, you can use PHP references to achieve this:
+        // However, you can use PHP references to achieve this:
 
-      $y = &$perl->array->y;
-      $y[0] = 1; // Modifies Perl's array @y
+        $y = &$perl->array->y;
+        $y[0] = 1; // Modifies Perl's array @y
 ```
 * The extension cannot call internal Perl functions (`print`, `die`, ...).
 
 * In PHP 8.x, references to Perl variables are not properly handled:
 ```php
-      $perl->y = 1;
-      $x = &$perl->y;
-      $x = 2;
-      var_dump( $perl->y ); // Should be int(2), but is int(1)
+        $perl->y = 1;
+        $x = &$perl->y;
+        $x = 2;
+        var_dump( $perl->y ); // Should be int(2), but is int(1)
 ```
 
 Testing
@@ -225,7 +225,9 @@ The status of the most recent testing follows:
   | Fedora 38        | 8.2.8       | 5.36.1       | PHP 8.x References to Perl variables not usable |
   | Fedora 39        | 8.2.13      | 5.38.2       | PHP 8.x References to Perl variables not usable |
   | Fedora 40        | 8.3.12      | 5.38.2       | PHP 8.x References to Perl variables not usable |
-  | Fedora 44        | 8.5.7       | 5.42.2       | PHP 8.x References to Perl variables not usable |
+  | Fedora 42        | 8.4.21      | 5.40.4       | PHP 8.x References to Perl variables not usable |
+  | Fedora 43        | 8.4.24      | 5.42.3       | PHP 8.x References to Perl variables not usable |
+  | Fedora 44        | 8.5.9       | 5.42.3       | PHP 8.x References to Perl variables not usable |
 
 The original extension was tested on Red Hat Linux 9.0 with PHP 5.0.0RC2-dev (non-ZTS build)
 and Perl 5.8.0 (installed from RPM), and on Windows 2000 with PHP 5.0.0RC2-dev
