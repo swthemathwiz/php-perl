@@ -175,7 +175,7 @@ jobs:
         try {
           & (Join-Path $phpDir 'phpize.bat')
           if ($LASTEXITCODE -ne 0) { throw 'phpize.bat failed' }
-          & ".\configure.bat" --with-perl="$env:PERL_PREFIX"
+          & ".\configure.bat" --with-perl="$env:PERL_PREFIX" --with-prefix="$phpDir"
           if ($LASTEXITCODE -ne 0) { throw 'configure.bat failed' }
           nmake
           if ($LASTEXITCODE -ne 0) { throw 'nmake failed' }
