@@ -26,6 +26,15 @@
 
 #if HAVE_PERL
 
+/* This ugly workaround is because both Perl and PHP try to define their incompatible functions structures on Windows */
+#ifdef PHP_WIN32
+struct DIR_W32;
+typedef struct DIR_W32 DIR;
+
+#define NO_XSLOCKS 1
+#define _INC_DIRENT 1
+#endif
+
 #include <EXTERN.h>     /* from the Perl distribution */
 #include <perl.h>       /* from the Perl distribution */
 #include <perliol.h>    /* from the Perl distribution */
