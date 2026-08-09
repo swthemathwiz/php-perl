@@ -146,8 +146,8 @@ jobs:
         try {
           nmake INST_TOP=$prefix
           if ($LASTEXITCODE -ne 0) { throw 'nmake failed' }
-          nmake install INST_TOP=$prefix
-          if ($LASTEXITCODE -ne 0) { throw 'nmake install failed' }
+          nmake installbare INST_TOP=$prefix
+          if ($LASTEXITCODE -ne 0) { throw 'nmake installbare failed' }
         } finally {
           Pop-Location
         }
