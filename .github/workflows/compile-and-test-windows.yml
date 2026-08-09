@@ -75,6 +75,11 @@ jobs:
         if (-not (Test-Path $phpExe)) { throw 'php.exe not found' }
         $phpDir = Split-Path $phpExe
         Expand-Archive -Path $zip -DestinationPath $phpDir -Force
+        $develRoot = Get-ChildItem -Path $phpDir -Directory -Filter 'php-*devel*' | Select-Object -First 1
+        if (-not $develRoot) { throw "PHP devel pack root not found under $phpDir" }
+        Get-ChildItem -Path $develRoot.FullName | Copy-Item -Destination $phpDir -Recurse -Force
+        Remove-Item -Path $develRoot.FullName -Recurse -Force
+        if (-not (Test-Path (Join-Path $phpDir 'include\main\php.h'))) { throw 'PHP headers not promoted to include\main' }
         Write-Host "PHP development pack extracted to $phpDir"
 
     - name: Set up MSVC command prompt
@@ -109,9 +114,6 @@ jobs:
         $srcDir = Join-Path $env:GITHUB_WORKSPACE 'tests\windows'
         New-Item -ItemType Directory -Force -Path $srcDir | Out-Null
         $perlSrc = @'
-        #define WIN32
-        #define PERL_IMPLICIT_CONTEXT
-        
         #include <stdio.h>
         #include "EXTERN.h"
         #include "perl.h"
