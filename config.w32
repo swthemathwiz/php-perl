@@ -1,7 +1,7 @@
 // $Id: config.w32 156137 2004-04-15 16:14:57Z edink $
 // config.w32 for extension perl
 
-ARG_WITH("perl", "Perl support (where to find Perl interpriter)", "no");
+ARG_WITH("perl", "Perl support (where to find Perl interpreter)", "no");
 
 if (PHP_PERL != "no") {
   if (CHECK_LIB("perl*.lib", "perl", PHP_PERL + ";\\Perl\\lib\\CORE" ) &&
