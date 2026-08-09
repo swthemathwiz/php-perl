@@ -191,13 +191,15 @@ jobs:
         $prefix = Join-Path $env:RUNNER_TEMP 'perl-msvc'
         Push-Location (Join-Path $srcDir 'win32')
         try {
-          nmake
+          nmake INST_TOP=$prefix
           if ($LASTEXITCODE -ne 0) { throw 'nmake failed' }
           nmake install INST_TOP=$prefix
           if ($LASTEXITCODE -ne 0) { throw 'nmake install failed' }
         } finally {
           Pop-Location
         }
+
+        if (-not (Test-Path (Join-Path $prefix 'lib\CORE\EXTERN.h'))) { throw 'Perl headers not installed to lib\CORE' }
 
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_PREFIX=$prefix"
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_ABI=$($env:PERL_VERSION -replace '\.','')"
