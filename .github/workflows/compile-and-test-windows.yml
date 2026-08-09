@@ -1,5 +1,7 @@
 name: Compile and Test (Windows)
 
+run-name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }} + Perl ${{ github.event.inputs.perlversion }}"
+
 on:
   workflow_dispatch:
     inputs:
@@ -43,10 +45,10 @@ jobs:
       PERL_VERSION: "${{ github.event.inputs.perlversion }}"
 
     steps:
-    - name: Checkout
+    - name: 📥 Checkout
       uses: actions/checkout@v6
 
-    - name: Set up PHP
+    - name: 🐘 Set up PHP
       id: setup-php
       uses: shivammathur/setup-php@v2
       with:
@@ -54,7 +56,7 @@ jobs:
       env:
         phpts: 'nts'
 
-    - name: Download PHP Development Pack
+    - name: 📦 Download PHP Development Pack
       env:
         PHP_VERSION: "${{ steps.setup-php.outputs.php-version }}"
       shell: pwsh
@@ -82,7 +84,7 @@ jobs:
         if (-not (Test-Path (Join-Path $phpDir 'include\main\php.h'))) { throw 'PHP headers not promoted to include\main' }
         Write-Host "PHP development pack extracted to $phpDir"
 
-    - name: Install MSYS2 build tools
+    - name: 🔧 Install MSYS2 build tools
       id: msys2
       uses: msys2/setup-msys2@v2
       with:
@@ -94,24 +96,24 @@ jobs:
           re2c
           mc
 
-    - name: Add MSYS2 tools to PATH
+    - name: 🛤️ Add MSYS2 tools to PATH
       shell: pwsh
       run: |
         Add-Content -Path $env:GITHUB_PATH -Value "${{ steps.msys2.outputs.msys2-location }}\usr\bin"
 
-    - name: Set up MSVC command prompt
+    - name: 🛠️ Set up MSVC command prompt
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
 
-    - name: Ensure MSVC tools precede MSYS2 on PATH
+    - name: 🧭 Ensure MSVC tools precede MSYS2 on PATH
       shell: pwsh
       run: |
         $env:PATH -split ';' |
           Where-Object { $_ -match 'Microsoft Visual Studio|Windows Kits' } |
           ForEach-Object { Add-Content -Path $env:GITHUB_PATH -Value $_ }
 
-    - name: Resolve Perl release tag
+    - name: 🏷️ Resolve Perl release tag
       shell: pwsh
       run: |
         $version = $env:PERL_VERSION
@@ -124,7 +126,7 @@ jobs:
         Write-Host "Selected Perl release tag: $tag"
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_TAG=$tag"
 
-    - name: Checkout Perl
+    - name: 🐪 Checkout Perl
       uses: actions/checkout@v6
       with:
         repository: Perl/perl5
@@ -132,7 +134,7 @@ jobs:
         path: perl-src
         fetch-depth: 1
 
-    - name: Build MSVC Perl
+    - name: 🏗️ Build MSVC Perl
       shell: pwsh
       run: |
         $srcDir = Join-Path $env:GITHUB_WORKSPACE 'perl-src'
@@ -157,14 +159,14 @@ jobs:
         Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'bin')
         Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'lib\CORE')
 
-    - name: Establish OS, PHP and Perl Versions
+    - name: ℹ️ Establish OS, PHP and Perl Versions
       shell: pwsh
       run: |
         [System.Environment]::OSVersion.VersionString
         php -v
         perl -v | Select-Object -First 2
 
-    - name: Configure PHP Perl Extension
+    - name: ⚙️ Configure PHP Perl Extension
       shell: pwsh
       run: |
         $phpDir = Split-Path (Get-Command php.exe -ErrorAction SilentlyContinue).Source
@@ -181,7 +183,7 @@ jobs:
           Pop-Location
         }
 
-    - name: Test Extension for Functionality
+    - name: 🧪 Test Extension for Functionality
       if: ${{ github.event.inputs.runtests == 'true' }}
       shell: pwsh
       run: |

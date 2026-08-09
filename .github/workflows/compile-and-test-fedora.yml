@@ -1,5 +1,7 @@
 name: Compile and Test (Fedora)
 
+run-name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
+
 on:
   workflow_dispatch:
     inputs:
@@ -43,18 +45,18 @@ jobs:
     container: "${{ github.event.inputs.os }}"
 
     steps:
-    - name: Checkout
+    - name: 📥 Checkout
       uses: actions/checkout@v6
-    - name: Install PHP and Perl Development
+    - name: 🐘 Install PHP and Perl Development
       run: |
         dnf install -y php-cli php-devel perl-devel make gcc perl-ExtUtils-Embed
-    - name: Establish OS, PHP and Perl Versions
+    - name: ℹ️ Establish OS, PHP and Perl Versions
       run: |
         grep PRETTY_NAME /etc/os-release
         php -v
         phpize --version
         perl -v | head -n 2
-    - name: Configure PHP Perl Extension
+    - name: ⚙️ Configure PHP Perl Extension
       env:
         PHP_PREFIX: "/usr"
         PERL_PREFIX: "/usr"
@@ -62,22 +64,22 @@ jobs:
         $PHP_PREFIX/bin/phpize
         ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
         perl -pi -e 's/(\/run-tests\.php )/$1-q /' Makefile
-    - name: Build
+    - name: 🏗️ Build
       run: make
-    - name: Test Extension for Functionality
+    - name: 🧪 Test Extension for Functionality
       if: ${{ github.event.inputs.runtests == 'true' }}
       run: make test
-    - name: Install valgrind
+    - name: 🛠️ Install valgrind
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
         dnf install -y valgrind
         valgrind --version
-    - name: Setup Memory Check Suppression File
+    - name: 📄 Setup Memory Check Suppression File
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
         cat php_perl.supp > php_perl_fixexe.supp
         echo "--suppressions=$PWD/php_perl_fixexe.supp" > ~/.valgrindrc
-    - name: Test Extension for Memory Leaks
+    - name: 🔍 Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
         perl -pi -e 's/(\/run-tests\.php )/$1-m /' Makefile

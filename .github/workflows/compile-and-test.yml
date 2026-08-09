@@ -1,5 +1,7 @@
 name: Compile and Test
 
+run-name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
+
 on:
   workflow_dispatch:
     inputs:
@@ -42,9 +44,9 @@ jobs:
     name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
     
     steps:
-    - name: Checkout
+    - name: 📥 Checkout
       uses: actions/checkout@v6
-    - name: Install PHP and Perl Development
+    - name: 🐘 Install PHP and Perl Development
       env:
         PHP_VERSION: "${{ github.event.inputs.phpversion }}"
       run: |
@@ -63,13 +65,13 @@ jobs:
           sudo update-alternatives --set phpdbg "/usr/bin/phpdbg$PHP_VERSION"
         fi
         echo "PHP_VERSION_SUFFIX=$PHP_SUFFIX" >> "$GITHUB_ENV"
-    - name: Establish OS, PHP and Perl Versions
+    - name: ℹ️ Establish OS, PHP and Perl Versions
       run: |
         grep PRETTY_NAME /etc/os-release
         php -v
         phpize --version
         perl -v | head -n 2
-    - name: Configure PHP Perl Extension
+    - name: ⚙️ Configure PHP Perl Extension
       env:
         PHP_PREFIX: "/usr"
         PERL_PREFIX: "/usr"
@@ -78,18 +80,18 @@ jobs:
         ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
         # Non-interactive run-tests
         perl -pi -e 's/(\/run-tests\.php )/$1-q /' Makefile
-    - name: Build
+    - name: 🏗️ Build
       run: make
-    - name: Test Extension for Functionality
+    - name: 🧪 Test Extension for Functionality
       if: ${{ github.event.inputs.runtests == 'true' }}
       run: |
         make test
-    - name: Install valgrind
+    - name: 🛠️ Install valgrind
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
         sudo apt-get install -qq valgrind
         valgrind --version
-    - name: Setup Memory Check Suppression File
+    - name: 📄 Setup Memory Check Suppression File
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       env:
         PHP_BIN: "/usr/bin/php${{ env.PHP_VERSION_SUFFIX }}"
@@ -98,7 +100,7 @@ jobs:
         cat php_perl.supp | perl -p -e "s#obj:/usr/bin/php#obj:$PHP_BIN#" | tee php_perl_fixexe.supp
         # Set in valgrindrc
         echo "--suppressions=$PWD/php_perl_fixexe.supp" > ~/.valgrindrc
-    - name: Test Extension for Memory Leaks
+    - name: 🔍 Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
         # Memory checking run-tests.php
