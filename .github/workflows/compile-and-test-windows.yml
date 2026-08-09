@@ -1,0 +1,159 @@
+name: Compile and Test (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: 'Windows runner image'
+        type: choice
+        default: 'windows-2022'
+        options:
+        - 'windows-2022'
+        - 'windows-2025'
+      phpversion:
+        description: 'PHP Version'
+        type: choice
+        default: '8.4'
+        options:
+        - '8.4'
+        - '8.5'
+      perlversion:
+        description: 'Perl Version (must support the MSVC143 toolset)'
+        type: choice
+        default: '5.40'
+        options:
+        - '5.36'
+        - '5.38'
+        - '5.40'
+      runtests:
+        description: 'Run Tests'
+        type: boolean
+        default: true
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: "${{ github.event.inputs.os }}"
+    name: "PHP ${{ github.event.inputs.phpversion }} + Perl ${{ github.event.inputs.perlversion }}"
+
+    env:
+      PERL_VERSION: "${{ github.event.inputs.perlversion }}"
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Set up PHP
+      id: setup-php
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: "${{ github.event.inputs.phpversion }}"
+        ts: 'nts'
+      env:
+        phpts: 'nts'
+
+    - name: Download PHP Development Pack
+      env:
+        PHP_VERSION: "${{ steps.setup-php.outputs.php-version }}"
+      shell: pwsh
+      run: |
+        $phpVersion = $env:PHP_VERSION
+        $major = $phpVersion -replace '^(\d+\.\d+)\..*', '$1'
+        $release = Invoke-RestMethod "https://api.github.com/repos/shivammathur/php-builder-windows/releases/tags/php$major"
+        $exact = $release.assets.name | Where-Object { $_ -match "^php-devel-pack-$([regex]::Escape($phpVersion))-nts-Win32-vs\d+-x64\.zip$" }
+        $candidate = if ($exact) { $exact } else {
+          $release.assets.name | Where-Object { $_ -match '^php-devel-pack-[^-]*-nts-Win32-vs\d+-x64\.zip$' } | Select-Object -Last 1
+        }
+        if (-not $candidate) { throw "No matching PHP development pack found for PHP $phpVersion" }
+        Write-Host "Using PHP development pack: $candidate"
+        $zip = Join-Path $env:RUNNER_TEMP $candidate
+        Invoke-WebRequest "https://github.com/shivammathur/php-builder-windows/releases/download/php$major/$candidate" -OutFile $zip
+        $phpExe = (Get-Command php.exe -ErrorAction SilentlyContinue).Source
+        if (-not $phpExe) { $phpExe = 'C:\tools\php\php.exe' }
+        if (-not (Test-Path $phpExe)) { throw 'php.exe not found' }
+        $phpDir = Split-Path $phpExe
+        Expand-Archive -Path $zip -DestinationPath $phpDir -Force
+        Write-Host "PHP development pack extracted to $phpDir"
+
+    - name: Set up MSVC command prompt
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Resolve Perl release tag
+      shell: pwsh
+      run: |
+        $version = $env:PERL_VERSION
+        $tag = git ls-remote --tags --refs https://github.com/Perl/perl5.git "v$version*" |
+          ForEach-Object { ($_ -split "`t")[1] -replace '^refs/tags/', '' } |
+          Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
+          Sort-Object { [version]($_ -substring 1) } -Descending |
+          Select-Object -First 1
+        if (-not $tag) { throw "No perl-$version release tag found" }
+        Write-Host "Selected Perl release tag: $tag"
+        Add-Content "PERL_TAG=$tag" $env:GITHUB_ENV
+
+    - name: Checkout Perl
+      uses: actions/checkout@v6
+      with:
+        repository: Perl/perl5
+        ref: ${{ env.PERL_TAG }}
+        path: perl-src
+        fetch-depth: 1
+
+    - name: Build MSVC Perl
+      shell: pwsh
+      run: |
+        $srcDir = Join-Path $env:GITHUB_WORKSPACE 'perl-src'
+        $makefile = Join-Path $srcDir 'win32\Makefile'
+        (Get-Content $makefile) -replace '^#CCTYPE\t+= MSVC143', "CCTYPE`t`t= MSVC143" | Set-Content $makefile
+
+        $prefix = Join-Path $env:RUNNER_TEMP 'perl-msvc'
+        Push-Location (Join-Path $srcDir 'win32')
+        try {
+          nmake
+          if ($LASTEXITCODE -ne 0) { throw 'nmake failed' }
+          nmake install INST_TOP=$prefix
+          if ($LASTEXITCODE -ne 0) { throw 'nmake install failed' }
+        } finally {
+          Pop-Location
+        }
+
+        Add-Content "PERL_PREFIX=$prefix" $env:GITHUB_ENV
+        Add-Content "PERL_ABI=$($env:PERL_VERSION -replace '\.','')" $env:GITHUB_ENV
+        Add-Content (Join-Path $prefix 'bin') $env:GITHUB_PATH
+        Add-Content (Join-Path $prefix 'lib\CORE') $env:GITHUB_PATH
+
+    - name: Compile against MSVC Perl and PHP development pack
+      shell: pwsh
+      run: |
+        $phpExe = (Get-Command php.exe -ErrorAction SilentlyContinue).Source
+        if (-not $phpExe) { $phpExe = 'C:\tools\php\php.exe' }
+        $phpDir = Split-Path $phpExe
+        $perlCore = Join-Path $env:PERL_PREFIX 'lib\CORE'
+
+        cl /nologo /W3 /MD /D WIN32 /D PERL_IMPLICIT_CONTEXT /I "$perlCore" /c tests\windows\msvc_perl_embed.c
+        if ($LASTEXITCODE -ne 0) { throw 'perl embed compile failed' }
+        cl /nologo /W3 /MD /D ZEND_WIN32 /D PHP_WIN32 /D PHP_DLL `
+          /I "$phpDir\include" /I "$phpDir\include\main" /I "$phpDir\include\Zend" /I "$phpDir\include\TSRM" `
+          /c tests\windows\msvc_embed_main.c
+        if ($LASTEXITCODE -ne 0) { throw 'php compile failed' }
+        link /nologo /OUT:msvc_embed.exe msvc_embed_main.obj msvc_perl_embed.obj `
+          "$phpDir\lib\php8.lib" "$perlCore\perl$env:PERL_ABI.lib"
+        if ($LASTEXITCODE -ne 0) { throw 'link failed' }
+
+    - name: Run Tests
+      if: ${{ github.event.inputs.runtests == 'true' }}
+      shell: pwsh
+      run: |
+        $phpExe = (Get-Command php.exe -ErrorAction SilentlyContinue).Source
+        if (-not $phpExe) { $phpExe = 'C:\tools\php\php.exe' }
+        $phpDir = Split-Path $phpExe
+        $env:PATH = "$phpDir;$env:PERL_PREFIX\bin;$env:PATH"
+        .\msvc_embed.exe
+        if ($LASTEXITCODE -ne 0) { throw 'msvc_embed.exe failed' }
+        php -v
+        php -r "echo PHP_VERSION, PHP_EOL;"
