@@ -208,6 +208,43 @@ jobs:
         Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'bin')
         Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'lib\CORE')
 
+    - name: Establish OS, PHP and Perl Versions
+      shell: pwsh
+      run: |
+        [System.Environment]::OSVersion.VersionString
+        php -v
+        perl -v | Select-Object -First 2
+
+    - name: Configure PHP Perl Extension
+      shell: pwsh
+      run: |
+        $phpDir = Split-Path (Get-Command php.exe -ErrorAction SilentlyContinue).Source
+        if (-not $phpDir) { $phpDir = 'C:\tools\php' }
+        Push-Location $env:GITHUB_WORKSPACE
+        try {
+          & (Join-Path $phpDir 'phpize.bat')
+          if ($LASTEXITCODE -ne 0) { throw 'phpize.bat failed' }
+          & ".\configure.bat" --with-perl="$env:PERL_PREFIX"
+          if ($LASTEXITCODE -ne 0) { throw 'configure.bat failed' }
+          nmake
+          if ($LASTEXITCODE -ne 0) { throw 'nmake failed' }
+        } finally {
+          Pop-Location
+        }
+
+    - name: Test Extension for Functionality
+      if: ${{ github.event.inputs.runtests == 'true' }}
+      shell: pwsh
+      run: |
+        $env:TEST_PHP_ARGS = '-q -n'
+        Push-Location $env:GITHUB_WORKSPACE
+        try {
+          nmake test
+          if ($LASTEXITCODE -ne 0) { throw 'nmake test failed' }
+        } finally {
+          Pop-Location
+        }
+
     - name: Compile against MSVC Perl and PHP development pack
       shell: pwsh
       run: |
