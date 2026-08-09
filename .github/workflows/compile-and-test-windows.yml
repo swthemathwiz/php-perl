@@ -51,7 +51,6 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: "${{ github.event.inputs.phpversion }}"
-        ts: 'nts'
       env:
         phpts: 'nts'
 
@@ -90,7 +89,7 @@ jobs:
         $tag = git ls-remote --tags --refs https://github.com/Perl/perl5.git "v$version*" |
           ForEach-Object { ($_ -split "`t")[1] -replace '^refs/tags/', '' } |
           Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
-          Sort-Object { [version]($_ -substring 1) } -Descending |
+          Sort-Object { [version]($_.Substring(1)) } -Descending |
           Select-Object -First 1
         if (-not $tag) { throw "No perl-$version release tag found" }
         Write-Host "Selected Perl release tag: $tag"
