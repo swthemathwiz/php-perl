@@ -54,6 +54,12 @@
 
 #include "php_perl.h"
 
+#ifndef ZEND_EXTENSION_API_NO_8_4_X
+#define ZEND_EXTENSION_API_NO_8_4_X 420240924
+#endif
+#ifndef ZEND_EXTENSION_API_NO_8_2_X
+#define ZEND_EXTENSION_API_NO_8_2_X 420220829
+#endif
 #ifndef ZEND_EXTENSION_API_NO_8_0_X
 #define ZEND_EXTENSION_API_NO_8_0_X 420200930
 #endif
@@ -276,7 +282,9 @@ static void  php_perl_write_dimension( php_perl_zop object, php_perl_offp offset
 static int   php_perl_has_dimension( php_perl_zop object, php_perl_offp offset, int check_empty );
 static void  php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset );
 static zval *php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_zmp member, int type, void * *cache_slot );
-#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
+#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_2_X)
+static zend_result php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 );
+#elif (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
 static int   php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 );
 #endif
 
@@ -1617,7 +1625,11 @@ php_perl_unset_property( php_perl_zop object, php_perl_zmp member_val, void * *c
 } /* php_perl_unset_property */
 
 #if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
+#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_2_X)
+static zend_result
+#else
 static int
+#endif
 php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
 {
   TRACE_SUB( "php_perl_do_operation" );
@@ -2065,7 +2077,11 @@ php_perl_iterator_dtor( zend_object_iterator *iterator )
   zval_ptr_dtor(&iterator->data);
 } /* php_perl_iterator_dtor */
 
+#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_4_X)
+static zend_result
+#else
 static int
+#endif
 php_perl_iterator_valid( zend_object_iterator *iterator )
 {
   TRACE_SUB( "php_perl_iterator_valid" );
