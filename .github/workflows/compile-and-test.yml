@@ -38,6 +38,7 @@ on:
 jobs:
   build:
     runs-on: "${{ github.event.inputs.os }}"
+    name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
     
     steps:
     - name: Checkout

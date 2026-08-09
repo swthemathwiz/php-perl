@@ -39,6 +39,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
     container: "${{ github.event.inputs.os }}"
 
     steps:
