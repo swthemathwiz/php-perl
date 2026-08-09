@@ -37,7 +37,7 @@ permissions:
 jobs:
   build:
     runs-on: "${{ github.event.inputs.os }}"
-    name: "PHP ${{ github.event.inputs.phpversion }} + Perl ${{ github.event.inputs.perlversion }}"
+    name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }} + Perl ${{ github.event.inputs.perlversion }}"
 
     env:
       PERL_VERSION: "${{ github.event.inputs.perlversion }}"
@@ -121,8 +121,8 @@ jobs:
           Pop-Location
         }
 
-        Add-Content "PERL_PREFIX=$prefix" $env:GITHUB_ENV
-        Add-Content "PERL_ABI=$($env:PERL_VERSION -replace '\.','')" $env:GITHUB_ENV
+        Add-Content -Path $env:GITHUB_ENV -Value "PERL_PREFIX=$prefix"
+        Add-Content -Path $env:GITHUB_ENV -Value "PERL_ABI=$($env:PERL_VERSION -replace '\.','')"
         Add-Content (Join-Path $prefix 'bin') $env:GITHUB_PATH
         Add-Content (Join-Path $prefix 'lib\CORE') $env:GITHUB_PATH
 
