@@ -93,7 +93,7 @@ jobs:
           Select-Object -First 1
         if (-not $tag) { throw "No perl-$version release tag found" }
         Write-Host "Selected Perl release tag: $tag"
-        Add-Content "PERL_TAG=$tag" $env:GITHUB_ENV
+        Add-Content -Path $env:GITHUB_ENV -Value "PERL_TAG=$tag"
 
     - name: Checkout Perl
       uses: actions/checkout@v6
@@ -123,8 +123,8 @@ jobs:
 
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_PREFIX=$prefix"
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_ABI=$($env:PERL_VERSION -replace '\.','')"
-        Add-Content (Join-Path $prefix 'bin') $env:GITHUB_PATH
-        Add-Content (Join-Path $prefix 'lib\CORE') $env:GITHUB_PATH
+        Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'bin')
+        Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'lib\CORE')
 
     - name: Compile against MSVC Perl and PHP development pack
       shell: pwsh
