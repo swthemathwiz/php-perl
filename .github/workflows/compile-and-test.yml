@@ -15,15 +15,15 @@ on:
       phpversion:
         description: 'PHP Version'
         type: choice
-        default: '8.3'
+        default: '8.5'
         options:
-        - '7.4'
-        - '8.0'
-        - '8.1'
-        - '8.2'
-        - '8.3'
-        - '8.4'
         - '8.5'
+        - '8.4'
+        - '8.3'
+        - '8.2'
+        - '8.1'
+        - '8.0'
+        - '7.4'
       runtests:
         description: 'Run Tests'
         type: boolean

@@ -13,18 +13,18 @@ on:
       phpversion:
         description: 'PHP Version'
         type: choice
-        default: '8.4'
+        default: '8.5'
         options:
-        - '8.4'
         - '8.5'
+        - '8.4'
       perlversion:
         description: 'Perl Version (must support the MSVC143 toolset)'
         type: choice
         default: '5.40'
         options:
-        - '5.36'
-        - '5.38'
         - '5.40'
+        - '5.38'
+        - '5.36'
       runtests:
         description: 'Run Tests'
         type: boolean
