@@ -104,6 +104,13 @@ jobs:
       with:
         arch: x64
 
+    - name: Ensure MSVC tools precede MSYS2 on PATH
+      shell: pwsh
+      run: |
+        $env:PATH -split ';' |
+          Where-Object { $_ -match 'Microsoft Visual Studio|Windows Kits' } |
+          ForEach-Object { Add-Content -Path $env:GITHUB_PATH -Value $_ }
+
     - name: Resolve Perl release tag
       shell: pwsh
       run: |
