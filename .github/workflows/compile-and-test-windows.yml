@@ -82,11 +82,6 @@ jobs:
         if (-not (Test-Path (Join-Path $phpDir 'include\main\php.h'))) { throw 'PHP headers not promoted to include\main' }
         Write-Host "PHP development pack extracted to $phpDir"
 
-    - name: Set up MSVC command prompt
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-
     - name: Install MSYS2 build tools
       id: msys2
       uses: msys2/setup-msys2@v2
@@ -103,6 +98,11 @@ jobs:
       shell: pwsh
       run: |
         Add-Content -Path $env:GITHUB_PATH -Value "${{ steps.msys2.outputs.msys2-location }}\usr\bin"
+
+    - name: Set up MSVC command prompt
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
 
     - name: Resolve Perl release tag
       shell: pwsh
