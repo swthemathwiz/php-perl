@@ -32,4 +32,5 @@ tmp-php.ini
 .libs/*
 modules/*
 perl.la
+php_perl.dep
 php_perl.lo
