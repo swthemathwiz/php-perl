@@ -57,12 +57,13 @@ jobs:
     - name: 📦 Install PHP Development Pack
       env:
         PHP_VERSION: "${{ steps.setup-php.outputs.php-version }}"
+        GITHUB_TOKEN: "${{ github.token }}"
       shell: pwsh
       run: |
         # Resolve the PHP development pack asset for this PHP version
         $phpVersion = $env:PHP_VERSION
         $major = $phpVersion -replace '^(\d+\.\d+)\..*', '$1'
-        $release = Invoke-RestMethod "https://api.github.com/repos/shivammathur/php-builder-windows/releases/tags/php$major"
+        $release = Invoke-RestMethod "https://api.github.com/repos/shivammathur/php-builder-windows/releases/tags/php$major" -Headers @{ Authorization = "Bearer $env:GITHUB_TOKEN" }
         $exact = $release.assets.name | Where-Object { $_ -match "^php-devel-pack-$([regex]::Escape($phpVersion))-nts-Win32-vs\d+-x64\.zip$" }
         $candidate = if ($exact) { $exact } else {
           $release.assets.name | Where-Object { $_ -match '^php-devel-pack-[^-]*-nts-Win32-vs\d+-x64\.zip$' } | Select-Object -Last 1
