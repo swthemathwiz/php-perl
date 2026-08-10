@@ -188,14 +188,8 @@ jobs:
 
     - name: 🧪 Test Extension for Functionality
       if: ${{ github.event.inputs.runtests == 'true' }}
-      shell: pwsh
+      shell: cmd
       run: |
-        $env:TEST_PHP_ARGS = '-q -n'
-        Push-Location $env:GITHUB_WORKSPACE
-        try {
-          nmake test
-          if ($LASTEXITCODE -ne 0) { throw 'nmake test failed' }
-        } finally {
-          Pop-Location
-        }
+        SET TEST_PHP_ARGS=-q -n
+        nmake test
 
