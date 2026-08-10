@@ -45,7 +45,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PERL_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\\" /I "..\..\main" /I "..\..\TSRM" /I "..\..\ZEND" /I "$(PERL_HOME)\lib\CORE" /D ZEND_WIN32=1 /D PHP_WIN32=1 /D "HAVE_PERL" /D COMPILE_DL_PERL=1 /D ZEND_DEBUG=0 /D "ZTS" /D "WIN32" /D "NDEBUG" /D "PHP_EXPORTS" /D "_CONSOLE" /D "NO_STRICT" /D "PERL_IMLICIT_CONTEXT" /D "PERL_IMPLICIT_SYS" /D "USE_PERLIO" /D "PERL_MSVCRT_READFIX" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\\" /I "..\..\main" /I "..\..\TSRM" /I "..\..\ZEND" /I "$(PERL_HOME)\lib\CORE" /D ZEND_WIN32=1 /D PHP_WIN32=1 /D COMPILE_DL_PERL=1 /D ZEND_DEBUG=0 /D "ZTS" /D "WIN32" /D "NDEBUG" /D "PHP_EXPORTS" /D "_CONSOLE" /D "NO_STRICT" /D "PERL_IMLICIT_CONTEXT" /D "PERL_IMPLICIT_SYS" /D "USE_PERLIO" /D "PERL_MSVCRT_READFIX" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x407 /d "NDEBUG"
@@ -71,7 +71,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PERL_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\\" /I "..\..\main" /I "..\..\TSRM" /I "..\..\ZEND" /I "$(PERL_HOME)\lib\CORE" /D ZEND_DEBUG=1 /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "COMPILE_DL_PERL" /D "ZEND_WIN32" /D "PHP_WIN32" /D HAVE_PERL=1 /D ZTS=1 /D "WIN32" /D "NDEBUG" /D "PHP_EXPORTS" /D "_CONSOLE" /D "NO_STRICT" /D "PERL_IMLICIT_CONTEXT" /D "PERL_IMPLICIT_SYS" /D "USE_PERLIO" /D "PERL_MSVCRT_READFIX" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\\" /I "..\..\main" /I "..\..\TSRM" /I "..\..\ZEND" /I "$(PERL_HOME)\lib\CORE" /D ZEND_DEBUG=1 /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "COMPILE_DL_PERL" /D "ZEND_WIN32" /D "PHP_WIN32" /D ZTS=1 /D "WIN32" /D "NDEBUG" /D "PHP_EXPORTS" /D "_CONSOLE" /D "NO_STRICT" /D "PERL_IMLICIT_CONTEXT" /D "PERL_IMPLICIT_SYS" /D "USE_PERLIO" /D "PERL_MSVCRT_READFIX" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x407 /d "_DEBUG"
@@ -97,7 +97,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PERL_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\\" /I "..\..\main" /I "..\..\TSRM" /I "..\..\ZEND" /I "$(PERL_HOME)\lib\CORE" /D ZEND_DEBUG=1 /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "COMPILE_DL_PERL" /D "ZEND_WIN32" /D "PHP_WIN32" /D HAVE_PERL=1 /D ZTS=1 /D "WIN32" /D "NDEBUG" /D "PHP_EXPORTS" /D "_CONSOLE" /D "NO_STRICT" /D "PERL_IMLICIT_CONTEXT" /D "PERL_IMPLICIT_SYS" /D "USE_PERLIO" /D "PERL_MSVCRT_READFIX" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\\" /I "..\..\main" /I "..\..\TSRM" /I "..\..\ZEND" /I "$(PERL_HOME)\lib\CORE" /D ZEND_DEBUG=1 /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "COMPILE_DL_PERL" /D "ZEND_WIN32" /D "PHP_WIN32" /D ZTS=1 /D "WIN32" /D "NDEBUG" /D "PHP_EXPORTS" /D "_CONSOLE" /D "NO_STRICT" /D "PERL_IMLICIT_CONTEXT" /D "PERL_IMPLICIT_SYS" /D "USE_PERLIO" /D "PERL_MSVCRT_READFIX" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x407 /d "_DEBUG"
@@ -123,7 +123,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PERL_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\\" /I "..\..\main" /I "..\..\TSRM" /I "..\..\ZEND" /I "$(PERL_HOME)\lib\CORE" /D ZEND_WIN32=1 /D PHP_WIN32=1 /D "HAVE_PERL" /D COMPILE_DL_PERL=1 /D ZEND_DEBUG=0 /D "ZTS" /D "WIN32" /D "NDEBUG" /D "PHP_EXPORTS" /D "_CONSOLE" /D "NO_STRICT" /D "PERL_IMLICIT_CONTEXT" /D "PERL_IMPLICIT_SYS" /D "USE_PERLIO" /D "PERL_MSVCRT_READFIX" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\\" /I "..\..\main" /I "..\..\TSRM" /I "..\..\ZEND" /I "$(PERL_HOME)\lib\CORE" /D ZEND_WIN32=1 /D PHP_WIN32=1 /D COMPILE_DL_PERL=1 /D ZEND_DEBUG=0 /D "ZTS" /D "WIN32" /D "NDEBUG" /D "PHP_EXPORTS" /D "_CONSOLE" /D "NO_STRICT" /D "PERL_IMLICIT_CONTEXT" /D "PERL_IMPLICIT_SYS" /D "USE_PERLIO" /D "PERL_MSVCRT_READFIX" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x407 /d "NDEBUG"

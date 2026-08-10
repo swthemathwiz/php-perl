@@ -16,15 +16,9 @@
  +----------------------------------------------------------------------+
  */
 
-#ifdef COMPILE_DL_PERL
-#define HAVE_PERL 1
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-#if HAVE_PERL
 
 /* This ugly workaround is because both Perl and PHP try to define their incompatible functions structures on Windows */
 #ifdef PHP_WIN32
@@ -2444,5 +2438,3 @@ ZEND_TSRMLS_CACHE_DEFINE()
 #endif
 ZEND_GET_MODULE( perl )
 #endif
-
-#endif /* if HAVE_PERL */

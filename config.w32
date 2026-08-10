@@ -1,16 +1,19 @@
 // $Id: config.w32 156137 2004-04-15 16:14:57Z edink $
 // config.w32 for extension perl
 
-ARG_WITH("perl", "Perl support (where to find Perl interpreter)", "no");
+ARG_WITH("perl", "Perl support (where to find Perl interpreter)", "yes");
 
-if (PHP_PERL != "no") {
-  if (CHECK_LIB("perl*.lib", "perl", PHP_PERL + "\\lib\\CORE" ) &&
-      CHECK_HEADER_ADD_INCLUDE("perl.h", "CFLAGS_PERL", PHP_PERL + "\\lib\\CORE")) {
-    EXTENSION("perl", "php_perl.c");
-    AC_DEFINE("HAVE_PERL", 1, "Perl support");
+if (PHP_PERL == "no") {
+  ERROR("Perl support is mandatory for this extension. Use --with-perl=DIR, e.g. --with-perl=C:\\perl.");
+}
 
-    ADD_FLAG("CFLAGS_PERL", "/DHAVE_PERL /D_CONSOLE /DNO_STRICT /DPERL_IMPLICIT_CONTEXT /DPERL_IMPLICIT_SYS /DUSE_PERLIO /DPERL_MSVCRT_READFIX");
-  } else {
-    WARNING("perl not enabled; libraries and headers not found");
-  }
+var PERL_PATHS = (PHP_PERL == "yes") ? "C:\\perl;C:\\Perl64" : PHP_PERL;
+
+if (CHECK_LIB("perl*.lib", "perl", PERL_PATHS + "\\lib\\CORE") &&
+    CHECK_HEADER_ADD_INCLUDE("perl.h", "CFLAGS_PERL", PERL_PATHS + "\\lib\\CORE")) {
+  EXTENSION("perl", "php_perl.c");
+
+  ADD_FLAG("CFLAGS_PERL", "/D_CONSOLE /DNO_STRICT /DPERL_IMPLICIT_CONTEXT /DPERL_IMPLICIT_SYS /DUSE_PERLIO /DPERL_MSVCRT_READFIX");
+} else {
+  ERROR("Perl libraries and headers not found. Use --with-perl=DIR to point to an MSVC-built Perl installation.");
 }

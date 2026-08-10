@@ -5,16 +5,21 @@ PHP_ARG_WITH(perl, for perl support,
 [  --with-perl[=DIR]      Include perl support. DIR is the perl base directory.])
 
 if test "$PHP_PERL" != "no"; then
-  for i in $PHP_PERL /usr/local /usr; do
-    if test -x $i/bin/perl; then
-      PERL_DIR=$i
-      break
+  if test "$PHP_PERL" = "yes"; then
+    AC_PATH_PROG([PERL], [bin/perl], [], [/usr/local:/usr])
+    if test -n "$PERL"; then
+      PERL_DIR=${PERL%/bin/perl}
     fi
-  done
-
-  if test -z "$PERL_DIR"; then
-    AC_MSG_ERROR([Cannot find perl executable under $PHP_PERL.])
+  else
+    PERL_DIR=$PHP_PERL
   fi
+
+  AC_MSG_CHECKING([for Perl base directory])
+  if test -z "$PERL_DIR" || test ! -x "$PERL_DIR/bin/perl"; then
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find a Perl executable. Use --with-perl=DIR to specify the Perl base directory.])
+  fi
+  AC_MSG_RESULT([$PERL_DIR])
 
   $PERL_DIR/bin/perl -MExtUtils::Embed -e 'exit 0' || AC_MSG_ERROR([Cannot use perl ExtUtils::Embed package])
 
@@ -23,13 +28,6 @@ if test "$PHP_PERL" != "no"; then
 
   PHP_SUBST(EXTRA_CFLAGS)
   PHP_SUBST(EXTRA_LDFLAGS)
-dnl  PHP_EVAL_LIBLINE($PERL_LDFLAGS, PERL_SHARED_LIBADD)
-dnl  PHP_EVAL_INCLINE($PERL_CFLAGS)
 
-dnl  PHP_SUBST(PERL_SHARED_LIBADD)
-
-dnl  PHP_ADD_LIBRARY_WITH_PATH(perl, $PERL_DIR, MYSQL_SHARED_LIBADD)
-dnl  PHP_ADD_INCLUDE($PERL_DIR)
-  AC_DEFINE(HAVE_PERL,1,[Whether you have perl])
   PHP_NEW_EXTENSION(perl, php_perl.c, $ext_shared)
 fi
