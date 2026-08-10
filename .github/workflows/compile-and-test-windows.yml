@@ -15,8 +15,9 @@ on:
       phpversion:
         description: 'PHP Version'
         type: choice
-        default: '8.5'
+        default: 'latest'
         options:
+        - 'latest'
         - '8.5'
         - '8.4'
       perlversion:
