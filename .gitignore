@@ -12,8 +12,9 @@ config.nice
 config.status
 config.sub
 configure
-configure.ac
 configure~
+configure.ac
+configure.ac~
 install-sh
 libtool
 ltmain.sh
