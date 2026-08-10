@@ -62,7 +62,7 @@ Step 2. Install the extension (this step can require root privileges):
 ```
 Step 3. Add the Perl extension to your `php.ini` (this step can require root privileges):
 ```ini
-    extension=perl.so
+    extension=perl
 ```
 
 Windows Installation Notes
@@ -90,7 +90,7 @@ Step 2. Copy `php_perl.dll` (from `Release`) to the PHP extension directory.
 
 Step 3. Add the Perl extension to your `php.ini`:
 ```ini
-    extension=php_perl.dll
+    extension=perl
 ```
 
 PHP API
