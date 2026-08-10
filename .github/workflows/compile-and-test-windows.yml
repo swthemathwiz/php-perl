@@ -41,9 +41,6 @@ jobs:
     runs-on: "${{ github.event.inputs.os }}"
     name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }} + Perl ${{ github.event.inputs.perlversion }}"
 
-    env:
-      PERL_VERSION: "${{ github.event.inputs.perlversion }}"
-
     steps:
     - name: 📥 Checkout
       uses: actions/checkout@v6
@@ -107,7 +104,6 @@ jobs:
           bison
           sed
           re2c
-          mc
 
     - name: 🛤️ Add MSYS2 tools to PATH
       shell: pwsh
@@ -127,6 +123,8 @@ jobs:
           ForEach-Object { Add-Content -Path $env:GITHUB_PATH -Value $_ }
 
     - name: 🏷️ Resolve Perl release tag
+      env:
+        PERL_VERSION: "${{ github.event.inputs.perlversion }}"
       shell: pwsh
       run: |
         $version = $env:PERL_VERSION
@@ -137,13 +135,13 @@ jobs:
           Select-Object -First 1
         if (-not $tag) { throw "No perl-$version release tag found" }
         Write-Host "Selected Perl release tag: $tag"
-        Add-Content -Path $env:GITHUB_ENV -Value "PERL_TAG=$tag"
+        Add-Content -Path $env:GITHUB_ENV -Value "PERL_VERSION_TAG=$tag"
 
     - name: 🐪 Checkout Perl
       uses: actions/checkout@v6
       with:
         repository: Perl/perl5
-        ref: ${{ env.PERL_TAG }}
+        ref: ${{ env.PERL_VERSION_TAG }}
         path: perl-src
         fetch-depth: 1
 
@@ -168,7 +166,6 @@ jobs:
         if (-not (Test-Path (Join-Path $prefix 'lib\CORE\EXTERN.h'))) { throw 'Perl headers not installed to lib\CORE' }
 
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_PREFIX=$prefix"
-        Add-Content -Path $env:GITHUB_ENV -Value "PERL_ABI=$($env:PERL_VERSION -replace '\.','')"
         Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'bin')
         Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'lib\CORE')
 
