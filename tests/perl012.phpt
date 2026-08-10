@@ -1,5 +1,5 @@
 --TEST--
-Test 12: calling perl user function
+Test 12: calling Perl user function
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

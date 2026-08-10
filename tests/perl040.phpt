@@ -1,5 +1,5 @@
 --TEST--
-Test 40: accessing elements of array based perl object
+Test 40: accessing elements of array-based Perl object
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

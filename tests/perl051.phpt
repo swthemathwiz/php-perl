@@ -1,5 +1,5 @@
 --TEST--
-Test 51: PHP's references support
+Test 51: passing PHP references
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

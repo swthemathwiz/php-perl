@@ -1,5 +1,5 @@
 --TEST--
-Test 52: Perl's cyclic structures support
+Test 52: reading Perl cyclic structures
 --SKIPIF--
 <?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '>=')) echo( 'skip PHP 8.x references to Perl variables unsupported' ); ?>
 --FILE--

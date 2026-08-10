@@ -1,5 +1,5 @@
 --TEST--
-Test 9: accessing array perl variables
+Test 9: accessing array Perl variables
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

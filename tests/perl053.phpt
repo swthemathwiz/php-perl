@@ -1,5 +1,5 @@
 --TEST--
-Test 53: PHP's cyclic structures support
+Test 53: passing PHP cyclic structures
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

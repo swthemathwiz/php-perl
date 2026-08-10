@@ -1,5 +1,5 @@
 --TEST--
-Test 10: accessing hash perl variables
+Test 10: accessing hash Perl variables
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

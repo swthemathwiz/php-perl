@@ -1,5 +1,5 @@
 --TEST--
-Test 71: Basic type check
+Test 71: checking basic types
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

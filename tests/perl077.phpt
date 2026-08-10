@@ -1,5 +1,5 @@
 --TEST--
-Test 77: Dumping a variety of objects
+Test 77: dumping a variety of objects
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

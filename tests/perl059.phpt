@@ -1,5 +1,5 @@
 --TEST--
-Test 59: Calling perl subroutine in array context
+Test 59: calling Perl subroutine in array context
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

@@ -1,5 +1,5 @@
 --TEST--
-Test 32: calling objects methods (without arguments)
+Test 32: calling object methods (without arguments)
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

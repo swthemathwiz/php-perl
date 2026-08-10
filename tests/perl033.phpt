@@ -1,5 +1,5 @@
 --TEST--
-Test 33: calling objects methods with arguments
+Test 33: calling object methods with arguments
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

@@ -1,5 +1,5 @@
 --TEST--
-Test 2: require of non existing file
+Test 2: calling require() on non-existing file
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --INI--

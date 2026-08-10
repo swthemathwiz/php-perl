@@ -1,5 +1,5 @@
 --TEST--
-Test 63: Modifying scalar Perl variables
+Test 63: modifying scalar Perl variables with operators
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

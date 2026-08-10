@@ -1,5 +1,5 @@
 --TEST--
-Test 78: Modifying objects with assign/inc/dec operators
+Test 78: modifying objects with assign/inc/dec operators
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

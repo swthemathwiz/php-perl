@@ -1,5 +1,5 @@
 --TEST--
-Test 20: die() in perl_eval()
+Test 20: calling die() in perl->eval()
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

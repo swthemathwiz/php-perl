@@ -1,5 +1,5 @@
 --TEST--
-Test 26: reading hash object's property
+Test 26: reading a hash object's properties
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

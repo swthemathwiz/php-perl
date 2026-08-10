@@ -1,5 +1,5 @@
 --TEST--
-Test 3: eval
+Test 3: evaluating valid Perl code (perl->eval())
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

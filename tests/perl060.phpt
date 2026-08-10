@@ -1,5 +1,5 @@
 --TEST--
-Test 60: Calling perl method in array context
+Test 60: calling Perl method in array context
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

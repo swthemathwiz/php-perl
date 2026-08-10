@@ -1,5 +1,5 @@
 --TEST--
-Test 72: Unknown class conversion attempt
+Test 72: attempting to convert unknown class
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

@@ -1,5 +1,5 @@
 --TEST--
-Test 39: creating array based perl objects
+Test 39: creating array-based Perl objects
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

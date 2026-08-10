@@ -1,5 +1,5 @@
 --TEST--
-Test 67: Eval code in scalar/array/hash context
+Test 67: evaluating code in scalar/array/hash contexts
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

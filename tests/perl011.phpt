@@ -1,5 +1,5 @@
 --TEST--
-Test 11: accessing undefined perl variables
+Test 11: accessing undefined Perl variables
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

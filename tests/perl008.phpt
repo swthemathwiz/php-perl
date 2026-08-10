@@ -1,5 +1,5 @@
 --TEST--
-Test 8: accessing scalar perl variables
+Test 8: accessing scalar Perl variables
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

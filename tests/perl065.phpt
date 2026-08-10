@@ -1,5 +1,5 @@
 --TEST--
-Test 65: Modifying hash Perl variables
+Test 65: modifying hash Perl variables
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

@@ -1,5 +1,5 @@
 --TEST--
-Test 29: setting array object's property
+Test 29: setting an array object's properties
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

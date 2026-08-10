@@ -1,5 +1,5 @@
 --TEST--
-Test 30: setting hash object's property
+Test 30: setting a hash object's properties
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

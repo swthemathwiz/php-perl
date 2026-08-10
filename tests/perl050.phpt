@@ -1,5 +1,5 @@
 --TEST--
-Test 50: Perl's references support
+Test 50: reading Perl references
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

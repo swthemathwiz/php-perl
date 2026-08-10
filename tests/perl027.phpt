@@ -1,5 +1,5 @@
 --TEST--
-Test 27: reading object object's property
+Test 27: reading class object's properties
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

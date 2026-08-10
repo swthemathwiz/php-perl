@@ -1,5 +1,5 @@
 --TEST--
-Test 7: Evaluating invalid Perlcode (eval)
+Test 7: evaluating invalid Perl code (perl->eval())
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --INI--

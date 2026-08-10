@@ -1,5 +1,5 @@
 --TEST--
-Test 62: Modifying object element with += operator
+Test 62: modifying object element with += operator
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

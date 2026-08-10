@@ -1,5 +1,5 @@
 --TEST--
-Test 22: returning object from perl function
+Test 22: returning object from Perl function
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

@@ -1,5 +1,5 @@
 --TEST--
-Test 76: Repeated require
+Test 76: calling require() repeatedly
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

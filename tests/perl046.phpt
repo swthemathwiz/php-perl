@@ -1,5 +1,5 @@
 --TEST--
-Test 46: modifying element of array based object
+Test 46: modifying element of array-based Perl object
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

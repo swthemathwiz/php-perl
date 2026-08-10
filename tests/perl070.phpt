@@ -1,5 +1,5 @@
 --TEST--
-Test 70: Catching Perl errors
+Test 70: catching Perl errors
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

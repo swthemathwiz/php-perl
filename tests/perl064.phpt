@@ -1,5 +1,5 @@
 --TEST--
-Test 64: Modifying array Perl variables
+Test 64: modifying array Perl variables
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

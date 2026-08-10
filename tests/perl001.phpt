@@ -1,5 +1,5 @@
 --TEST--
-Test 1: require of existing file
+Test 1: calling require() on existing file
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

@@ -1,5 +1,5 @@
 --TEST--
-Test 54: Perl's cyclic object structures support
+Test 54: reading cyclic Perl objects created in Perl
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

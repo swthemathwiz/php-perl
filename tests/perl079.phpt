@@ -1,5 +1,5 @@
 --TEST--
-Test 79: Accessing packages with nested packages
+Test 79: accessing nested classes
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

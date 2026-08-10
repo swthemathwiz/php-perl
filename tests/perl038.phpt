@@ -1,5 +1,5 @@
 --TEST--
-Test 38: cloning perl objects
+Test 38: cloning hash-based Perl objects with nested data
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

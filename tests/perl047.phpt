@@ -1,5 +1,5 @@
 --TEST--
-Test 47: foreach() on Perl object
+Test 47: iterating with foreach() on Perl object
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

@@ -1,5 +1,5 @@
 --TEST--
-Test 19: die() in user function
+Test 19: calling die() in user function
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

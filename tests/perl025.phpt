@@ -1,5 +1,5 @@
 --TEST--
-Test 25: reading array object's property
+Test 25: reading an array object's properties
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

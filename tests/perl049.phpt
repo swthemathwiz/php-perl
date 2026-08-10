@@ -1,5 +1,5 @@
 --TEST--
-Test 49: creating and using perl objects from external module
+Test 49: creating and using Perl objects from external module
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--

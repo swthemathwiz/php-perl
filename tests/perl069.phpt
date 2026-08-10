@@ -1,5 +1,5 @@
 --TEST--
-Test 69: Method call in scalar/array/hash context
+Test 69: calling method in scalar/array/hash contexts
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--
