@@ -61,6 +61,7 @@ jobs:
         PHP_VERSION: "${{ steps.setup-php.outputs.php-version }}"
       shell: pwsh
       run: |
+        # Resolve the PHP development pack asset for this PHP version
         $phpVersion = $env:PHP_VERSION
         $major = $phpVersion -replace '^(\d+\.\d+)\..*', '$1'
         $release = Invoke-RestMethod "https://api.github.com/repos/shivammathur/php-builder-windows/releases/tags/php$major"
@@ -69,24 +70,32 @@ jobs:
           $release.assets.name | Where-Object { $_ -match '^php-devel-pack-[^-]*-nts-Win32-vs\d+-x64\.zip$' } | Select-Object -Last 1
         }
         if (-not $candidate) { throw "No matching PHP development pack found for PHP $phpVersion" }
-        Write-Host "✅ Using PHP development pack: $candidate"
+        Write-Host "`e[32m√`e[0m Using PHP development pack: $candidate"
+
+        # Download the development pack
         $zip = Join-Path $env:RUNNER_TEMP $candidate
         Invoke-WebRequest "https://github.com/shivammathur/php-builder-windows/releases/download/php$major/$candidate" -OutFile $zip
-        Write-Host "✅ PHP development pack downloaded to $zip"
+        Write-Host "`e[32m√`e[0m PHP development pack downloaded to $zip"
+
+        # Locate the PHP installation directory
         $phpExe = (Get-Command php.exe -ErrorAction SilentlyContinue).Source
         if (-not $phpExe) { $phpExe = 'C:\tools\php\php.exe' }
         if (-not (Test-Path $phpExe)) { throw 'php.exe not found' }
         $PHP_PREFIX = Split-Path $phpExe
+
+        # Extract the pack and promote its contents into the PHP directory
         Expand-Archive -Path $zip -DestinationPath $PHP_PREFIX -Force
         $develRoot = Get-ChildItem -Path $PHP_PREFIX -Directory -Filter 'php-*devel*' | Select-Object -First 1
         if (-not $develRoot) { throw "PHP devel pack root not found under $PHP_PREFIX" }
         Get-ChildItem -Path $develRoot.FullName | Copy-Item -Destination $PHP_PREFIX -Recurse -Force
         Remove-Item -Path $develRoot.FullName -Recurse -Force
+        Write-Host "`e[32m√`e[0m PHP development pack extracted to $PHP_PREFIX"
+
+        # Verify the pack layout and export the prefix for later steps
         if (-not (Test-Path (Join-Path $PHP_PREFIX 'include\main\php.h'))) { throw 'PHP headers not promoted to include\main' }
-        if (-not (Test-Path (Join-Path $PHP_PREFIX 'bin\php-config.bat'))) { throw 'php-config.bat not found in development pack' }
         if (-not (Test-Path (Join-Path $PHP_PREFIX 'phpize.bat'))) { throw 'phpize.bat not found in development pack' }
         Add-Content -Path $env:GITHUB_ENV -Value "PHP_PREFIX=$PHP_PREFIX"
-        Write-Host "✅ PHP development pack extracted to $PHP_PREFIX"
+        Write-Host "`e[32m√`e[0m PHP development pack layout verified"
 
     - name: 🔧 Install MSYS2 build tools
       id: msys2
@@ -173,7 +182,12 @@ jobs:
     - name: ⚙️ Configure PHP Perl Extension
       shell: cmd
       run: |
-        "%PHP_PREFIX%\phpize.bat" && .\configure.bat --with-perl="%PERL_PREFIX%" --with-php-config="%PHP_PREFIX%\bin\php-config" && nmake
+        "%PHP_PREFIX%\phpize.bat" && .\configure.bat --with-perl="%PERL_PREFIX%" --with-prefix="%PHP_PREFIX%"
+
+    - name: 🏗️ Build Extension
+      shell: cmd
+      run: |
+        nmake
 
     - name: 🧪 Test Extension for Functionality
       if: ${{ github.event.inputs.runtests == 'true' }}

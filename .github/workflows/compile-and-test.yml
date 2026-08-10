@@ -80,7 +80,7 @@ jobs:
         ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
         # Non-interactive run-tests
         perl -pi -e 's/(\/run-tests\.php )/$1-q /' Makefile
-    - name: 🏗️ Build
+    - name: 🏗️ Build Extension
       run: make
     - name: 🧪 Test Extension for Functionality
       if: ${{ github.event.inputs.runtests == 'true' }}
