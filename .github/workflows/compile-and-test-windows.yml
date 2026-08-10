@@ -42,7 +42,7 @@ jobs:
     name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }} + Perl ${{ github.event.inputs.perlversion }}"
 
     steps:
-    - name: 📥 Checkout
+    - name: 📥 Checkout Extension
       uses: actions/checkout@v6
 
     - name: 🐘 Set up PHP

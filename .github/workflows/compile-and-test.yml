@@ -44,7 +44,7 @@ jobs:
     name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
     
     steps:
-    - name: 📥 Checkout
+    - name: 📥 Checkout Extension
       uses: actions/checkout@v6
     - name: 🐘 Install PHP and Perl Development
       env:

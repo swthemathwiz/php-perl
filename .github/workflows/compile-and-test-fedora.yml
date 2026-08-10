@@ -45,7 +45,7 @@ jobs:
     container: "${{ github.event.inputs.os }}"
 
     steps:
-    - name: 📥 Checkout
+    - name: 📥 Checkout Extension
       uses: actions/checkout@v6
     - name: 🐘 Install PHP and Perl Development
       run: |
