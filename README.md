@@ -27,7 +27,7 @@ The primary changes were:
   - Adapted to the newer PHP object model.
   - Modified the use of binary hashes (no longer supported).
   - Deleted the older tasking model code.
-  - General PHP 5 to 7 changes.
+  - Made general changes for the PHP 5-to-7 transition.
   - Updated miscellaneous code (4+ years of API changes).
   - Modified various tests, primarily because `var_dump` does not sort hashes
     consistently. Some tests use Perl's `Data::Dumper` to get around
@@ -67,20 +67,28 @@ Step 3. Add the Perl extension to your `php.ini` (this step can require root pri
 
 Windows Installation Notes
 ==========================
+PHP only supports the MSVC toolchain and does not generally include development
+support (headers and libraries). So, prerequisites are:
 
-Step 1. Download ActivePerl binaries for Windows from [ActiveState](https://www.activestate.com/products/perl/)
-        and install them.
+  - Obtain (or build) a Perl version built with MSVC (an officially supported
+    configuration). Most versions of Perl on Windows are built using the MinGW
+    toolchain.
+  - Install the PHP Development Pack from [PHP](https://windows.php.net/downloads/).
+  - Install [MSYS2](https://www.msys2.org/) to augment
+    your build toolchain to include tools such as bison, sed, and re2c.
 
-Step 2. Put this extension's source into the corresponding PHP source tree (as `ext/perl`).
-
-Step 3. Compile the extension:
+Step 1. Compile this extension. `PHP_PREFIX` and `PERL_PREFIX` must point to valid
+        PHP and Perl installation prefixes:
 ```cmd
-    SET PERL_HOME=C:\perl
-    msdev perl.dsp /MAKE "perl - Win32 Release_TS"
+    SET PERL_PREFIX=C:\perl
+    SET PHP_PREFIX=C:\php
+    "%PHP_PREFIX%\phpize.bat"
+    .\configure.bat --with-perl="%PERL_PREFIX%" --with-prefix="%PHP_PREFIX%"
+    nmake
 ```
-Step 4. Copy `php_perl.dll` (from `Release_TS`) to the PHP extension directory.
+Step 2. Copy `php_perl.dll` (from `Release`) to the PHP extension directory.
 
-Step 5. Add the Perl extension to your `php.ini`:
+Step 3. Add the Perl extension to your `php.ini`:
 ```ini
     extension=php_perl.dll
 ```
