@@ -1060,6 +1060,39 @@ php_perl_call( const char *func, int argc, zval *argv,
 
 /****************************************************************************/
 
+/* Returns true or false based on whether a zval is a null */
+static inline int
+zval_is_null(zval *op)
+{
+again:
+  switch( Z_TYPE_P(op) ) {
+    case IS_NULL:
+    case IS_UNDEF:
+      return 1;
+    case IS_REFERENCE:
+      op = Z_REFVAL_P(op);
+      goto again;
+    default:
+      return 0;
+  }
+} /* zval_is_null */
+
+/* Returns true or false based on whether a zval is a long */
+static inline int
+zval_is_long(zval *op)
+{
+again:
+  switch( Z_TYPE_P(op) ) {
+    case IS_LONG:
+      return 1;
+    case IS_REFERENCE:
+      op = Z_REFVAL_P(op);
+      goto again;
+    default:
+      return 0;
+  }
+} /* zval_is_long */
+
 #if (ZEND_EXTENSION_API_NO < ZEND_EXTENSION_API_NO_8_0_X)
 static zval *
 php_perl_get( php_perl_zop object, zval *retval )
@@ -1094,6 +1127,19 @@ php_perl_set( php_perl_zop object, zval *value )
 } /* php_perl_set */
 #endif
 
+static int
+php_perl_get_array_offset( php_perl_offp offset_val, zend_long *offset )
+{
+  TRACE_SUB( "php_perl_get_array_offset" );
+
+  if( !zval_is_long( offset_val ) ) {
+    return FALSE;
+  }
+
+  *offset = zval_get_long( offset_val );
+  return TRUE;
+} /* php_perl_get_array_offset */
+
 /* Returns element of array based Perl's object */
 static zval *
 php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type, zval *rv )
@@ -1122,7 +1168,12 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
   if( SvTYPE( sv ) == SVt_PVAV ) {
     AV        *av = (AV *)sv;
     SV      * *prop_val;
-    zend_ulong offset = zval_get_long(offset_val);
+    zend_long offset;
+
+    if( !php_perl_get_array_offset( offset_val, &offset ) ) {
+      zend_error( E_WARNING, "[perl] Array index must be an integer" );
+      return &EG( uninitialized_zval );
+    }
 
     TRACE_MSG2( "read_dim offset = %ld", (long)offset );
 
@@ -1169,7 +1220,14 @@ php_perl_write_dimension( php_perl_zop object, php_perl_offp offset_val, zval *v
   sv = php_perl_deref( sv );
   if( SvTYPE( sv ) == SVt_PVAV ) {
     AV *av = (AV *)sv;
-    av_store( av, zval_get_long(offset_val), php_perl_zval_to_sv( value ) );
+    zend_long offset;
+
+    if( !php_perl_get_array_offset( offset_val, &offset ) ) {
+      zend_error( E_WARNING, "[perl] Array index must be an integer" );
+    }
+    else {
+      av_store( av, offset, php_perl_zval_to_sv( value ) );
+    }
   }
   else if( SvTYPE( sv ) == SVt_PVHV ) {
     php_perl_zmp mp = php_perl_offset_to_member( offset_val );
@@ -1201,10 +1259,14 @@ php_perl_has_dimension( php_perl_zop object, php_perl_offp offset_val, int check
   sv = php_perl_deref( sv );
   if( SvTYPE( sv ) == SVt_PVAV ) {
     AV        *av     = (AV *)sv;
-    zend_ulong offset = zval_get_long(offset_val);
+    zend_long offset;
 
+    if( !php_perl_get_array_offset( offset_val, &offset ) ) {
+      zend_error( E_WARNING, "[perl] Array index must be an integer" );
+      ret = 0;
+    }
     /* empty() */
-    if( check_empty ) {
+    else if( check_empty ) {
       SV * *prop_val = av_fetch( av, offset, 0 );
       if( prop_val != NULL ) {
         zval zv;
@@ -1248,7 +1310,14 @@ php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset_val )
   sv = php_perl_deref( sv );
   if( SvTYPE( sv ) == SVt_PVAV ) {
     AV *av = (AV *)sv;
-    av_delete( av, zval_get_long(offset_val), G_DISCARD );
+    zend_long offset;
+
+    if( !php_perl_get_array_offset( offset_val, &offset ) ) {
+      zend_error( E_WARNING, "[perl] Array index must be an integer" );
+    }
+    else {
+      av_delete( av, offset, G_DISCARD );
+    }
   }
   else if( SvTYPE( sv ) == SVt_PVHV ) {
     php_perl_zmp mp = php_perl_offset_to_member( offset_val );
@@ -1483,23 +1552,6 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
   return result;
 #endif
 } /* php_perl_write_property */
-
-/* Returns true or false based on whether a zval is a null */
-static inline int
-zval_is_null(zval *op)
-{
-again:
-  switch( Z_TYPE_P(op) ) {
-    case IS_NULL:
-    case IS_UNDEF:
-      return 1;
-    case IS_REFERENCE:
-      op = Z_REFVAL_P(op);
-      goto again;
-    default:
-      return 0;
-  }
-} /* zval_is_null */
 
 /* Checks if property of hash based Perl's object isset or empty */
 static int
