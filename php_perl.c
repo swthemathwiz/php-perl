@@ -280,16 +280,6 @@ static void  php_perl_write_property( php_perl_zop object, php_perl_zmp member, 
 #endif
 static int   php_perl_has_property( php_perl_zop object, php_perl_zmp member, int has_set_exists, void * *cache_slot );
 static void  php_perl_unset_property( php_perl_zop object, php_perl_zmp member, void * *cache_slot );
-static zval *php_perl_read_dimension( php_perl_zop object, php_perl_offp offset, int type, zval *rv );
-static void  php_perl_write_dimension( php_perl_zop object, php_perl_offp offset, zval *value );
-static int   php_perl_has_dimension( php_perl_zop object, php_perl_offp offset, int check_empty );
-static void  php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset );
-static zval *php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_zmp member, int type, void * *cache_slot );
-#if (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_2_X)
-static zend_result php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 );
-#elif (ZEND_EXTENSION_API_NO >= ZEND_EXTENSION_API_NO_8_0_X)
-static int   php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 );
-#endif
 
 static SV *
 PerlIOPHP_getarg( pTHX_ PerlIO *f, CLONE_PARAMS *param, int flags )
