@@ -67,13 +67,10 @@ typedef struct DIR_W32 DIR;
 #define ZEND_THIS (&EX(This))
 #endif
 
-#if 0
+/* The TRACE_* macros and the TRACE_EXPOSE_START_STOP test functions are
+ * enabled with the --enable-perl-trace configuration switch (see config.m4). */
+#ifdef PHP_PERL_TRACE
 #define TRACE_ASSERT( C )        do { if( !( C ) ) abort(); } while( 0 )
-#else
-#define TRACE_ASSERT( C )
-#endif /* if 0 */
-
-#if 0
 #define TRACE_SUB( S )            int _trace_rc ZEND_ATTRIBUTE_UNUSED = fprintf( stderr, "%s\n", ( S ) ) | fflush( stderr );
 #define TRACE_MSG( S )            do { fprintf( stderr, "  %s\n", ( S ) ); fflush( stderr ); } while( 0 )
 #define TRACE_MSG2( F, V )        do { fprintf( stderr, "  " F "\n", ( V ) ); fflush( stderr ); } while( 0 )
@@ -83,8 +80,9 @@ typedef struct DIR_W32 DIR;
 #define TRACE_PERL_OBJECT( D, O ) do { fprintf( stderr, "  %s " ZEND_ADDR_FMT " (perl) sv=" ZEND_ADDR_FMT "\n", (D), (zend_ulong)(O), (zend_ulong)((O)->sv) ); fflush( stderr ); } while( 0 )
 #define TRACE_ZEND_OBJECT( D, O ) do { fprintf( stderr, "  %s " ZEND_ADDR_FMT " (zend)\n", (D), (zend_ulong)(O) ); fflush( stderr ); } while( 0 )
 #define TRACE_ZOP( D )            do { TRACE_PERL_OBJECT( (D), pobj ); TRACE_ZEND_OBJECT( (D), php_perl_zend_from_zop(object) ); } while( 0 )
-#define TEST_START_STOP
+#define TRACE_EXPOSE_START_STOP
 #else
+#define TRACE_ASSERT( C )
 #define TRACE_SUB( S )
 #define TRACE_MSG( S )
 #define TRACE_MSG2( F, V )
@@ -94,8 +92,8 @@ typedef struct DIR_W32 DIR;
 #define TRACE_PERL_OBJECT( D, O )
 #define TRACE_ZEND_OBJECT( D, O )
 #define TRACE_ZOP( D )
-#undef  TEST_START_STOP
-#endif /* if 0 */
+#undef  TRACE_EXPOSE_START_STOP
+#endif /* ifdef PHP_PERL_TRACE */
 
 ZEND_BEGIN_MODULE_GLOBALS( perl )
   PerlInterpreter *perl;
@@ -109,7 +107,7 @@ static PHP_GSHUTDOWN_FUNCTION( perl );
 
 #define PERLG(v) ZEND_MODULE_GLOBALS_ACCESSOR( perl, v )
 
-#ifdef TEST_START_STOP
+#ifdef TRACE_EXPOSE_START_STOP
 /* function: static void perl_start( void ) or perl_stop( void ) */
 PHP_FUNCTION( perl_start );
 PHP_FUNCTION( perl_stop );
@@ -2430,7 +2428,7 @@ PHP_METHOD( Perl, eval )
   TRACE_MSG( "Perl::eval done" );
 } /* Perl::eval */
 
-#ifdef TEST_START_STOP
+#ifdef TRACE_EXPOSE_START_STOP
 PHP_FUNCTION( perl_start )
 {
   TRACE_SUB( "PHP_FUNCTION: perl_start" )
@@ -2449,7 +2447,7 @@ PHP_FUNCTION( perl_stop )
 zend_module_entry perl_module_entry = {
   STANDARD_MODULE_HEADER,
   "perl",
-#ifdef TEST_START_STOP
+#ifdef TRACE_EXPOSE_START_STOP
   perl_static_functions,
 #else
   NULL,

@@ -1,8 +1,16 @@
 dnl $Id: config.m4 174724 2004-12-14 18:04:36Z dmitry $
 dnl config.m4 for extension perl
 
-PHP_ARG_WITH(perl, for perl support,
-[  --with-perl[=DIR]      Include perl support. DIR is the perl base directory.])
+PHP_ARG_WITH([perl],
+    [whether to enable Perl support],
+    [AS_HELP_STRING([--with-perl[=DIR]],
+        [Include perl support. DIR is the perl base directory])],
+    [yes])
+
+AC_ARG_ENABLE([perl-trace],
+    [AS_HELP_STRING([--enable-perl-trace],
+        [Enable Perl extension tracing and start/stop functions])],
+    [AC_DEFINE(PHP_PERL_TRACE, 1, [Whether to enable Perl extension tracing])])
 
 if test "$PHP_PERL" != "no"; then
   if test "$PHP_PERL" = "yes"; then
