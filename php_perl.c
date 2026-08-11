@@ -20,7 +20,7 @@
 #include "config.h"
 #endif
 
-/* This ugly workaround is because both Perl and PHP try to define their incompatible functions structures on Windows */
+/* An ugly workaround because both Perl and PHP try to redefine incompatible functions and structures on Windows */
 #ifdef PHP_WIN32
 struct DIR_W32;
 typedef struct DIR_W32 DIR;
@@ -99,7 +99,7 @@ typedef struct DIR_W32 DIR;
 
 ZEND_BEGIN_MODULE_GLOBALS( perl )
   PerlInterpreter *perl;
-  HashTable        perl_objects; /* this hash is used to make one to one mapping between Perl and PHP objects */
+  HashTable        perl_objects; /* this hash is used to make one-to-one mapping between Perl and PHP objects */
   zend_bool        perl_sys_inited; /* if this module has been sys inited */
 ZEND_END_MODULE_GLOBALS( perl )
 
@@ -1133,7 +1133,7 @@ php_perl_get_array_offset( php_perl_offp offset_val, zend_long *offset )
   return TRUE;
 } /* php_perl_get_array_offset */
 
-/* Returns element of array based Perl's object */
+/* Returns element of array based on Perl's object */
 static zval *
 php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type, zval *rv )
 {
@@ -1194,7 +1194,7 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
     return retval;
 } /* php_perl_read_dimension */
 
-/* Sets element of array based Perl's object */
+/* Sets element of array based on Perl's object */
 static void
 php_perl_write_dimension( php_perl_zop object, php_perl_offp offset_val, zval *value )
 {
@@ -1232,7 +1232,7 @@ php_perl_write_dimension( php_perl_zop object, php_perl_offp offset_val, zval *v
   }
 } /* php_perl_write_dimension */
 
-/* Checks if element of array based Perl's object isset or empty */
+/* Checks if element of array based on Perl's object isset or empty */
 static int
 php_perl_has_dimension( php_perl_zop object, php_perl_offp offset_val, int check_empty )
 {
@@ -1284,7 +1284,7 @@ php_perl_has_dimension( php_perl_zop object, php_perl_offp offset_val, int check
   return ret;
 } /* php_perl_has_dimension */
 
-/* Deletes element of array based Perl's object */
+/* Deletes element of array based on Perl's object */
 static void
 php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset_val )
 {
@@ -1331,7 +1331,7 @@ php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_zmp member_val, int
   return NULL;
 } /* php_perl_get_property_ptr_ptr */
 
-/* Returns property of hash based Perl's object */
+/* Returns property of hash based on Perl's object */
 static zval *
 php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, void * *key_, zval *rv )
 {
@@ -1373,7 +1373,7 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
 
   TRACE_MSG( "rp1" );
 
-  /* Trying the pull an array, hash, or scalar from Perl() object space */
+  /* Trying to pull an array, hash, or scalar from Perl() object space */
   if( pobj->sv == NULL ) {
     if( pobj->context == PERL_ARRAY ) {
       sv = (SV *)get_av( ZSTR_VAL( member ), write );
@@ -1447,7 +1447,7 @@ php_perl_read_property_cleanup:
     return retval;
 } /* php_perl_read_property */
 
-/* Sets property of hash based Perl's object */
+/* Sets property of hash based on Perl's object */
 #if PHP_VERSION_GT(7,4,0)
 static zval *
 php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *value, void * *cache_slot )
@@ -1546,7 +1546,7 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
 #endif
 } /* php_perl_write_property */
 
-/* Checks if property of hash based Perl's object isset or empty */
+/* Checks if property of hash based on Perl's object isset or empty */
 static int
 php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set_exists, void * *cache_slot )
 {
@@ -1623,7 +1623,7 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
   return ret;
 } /* php_perl_has_property */
 
-/* Deletes property of hash based Perl's object */
+/* Deletes property of hash based on Perl's object */
 static void
 php_perl_unset_property( php_perl_zop object, php_perl_zmp member_val, void * *cache_slot )
 {
@@ -1673,7 +1673,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
   TRACE_SUB( "php_perl_do_operation" );
 
   TRACE_MSG2( "opcode = %d", (int)opcode );
-  /* Is is an increment (++) or decrement (--) */
+  /* Is it an increment (++) or decrement (--) ? */
   if( (opcode == ZEND_ADD || opcode == ZEND_SUB) &&
       result == op1 &&
       Z_TYPE_P(op2) == IS_LONG && Z_LVAL_P(op2) == 1 ) {
@@ -1706,7 +1706,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
 } /* php_perl_do_operation */
 #endif
 
-/* Perl::__construct constructs Perl PHP object (optoinally by calling a Perl constructor) */
+/* Perl::__construct constructs Perl PHP object (optionally by calling a Perl constructor) */
 PHP_METHOD( Perl, __construct )
 {
   TRACE_SUB( "PHP_METHOD: Perl::__construct" );
@@ -1998,7 +1998,7 @@ php_perl_free_obj( zend_object *object )
   zend_object_std_dtor( object );
 } /* php_perl_free_obj */
 
-/* Makes a copy of overloaded perl object.
+/* Makes a copy of an overloaded Perl object.
    It copies only properties or elements of object, but doesn't copy nested
    arrays, hashes or objects */
 static zend_object *
@@ -2318,7 +2318,7 @@ PHP_MINFO_FUNCTION( perl )
 } /* PHP_MINFO_FUNCTION */
 
 /* perl_require($perl_filename)
-   Loads and executes Perl file. Produces a error if file does not exist or
+   Loads and executes Perl file. Produces an error if file does not exist or
    has Perl's errors */
 PHP_METHOD( Perl, require )
 {
@@ -2346,7 +2346,7 @@ PHP_METHOD( Perl, require )
 
 /* perl_eval($perl_code)
    Evaluates Perl code and returns result.
-   Produces a error if code has Perl's errors */
+   Produces an error if code has Perl's errors */
 PHP_METHOD( Perl, eval )
 {
   TRACE_SUB( "PHP_METHOD: Perl::eval" );
