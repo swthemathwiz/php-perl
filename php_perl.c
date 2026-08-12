@@ -58,7 +58,7 @@ typedef struct DIR_W32 DIR;
 /* PHP version comparison helpers based on PHP_VERSION_ID */
 #define PHP_VERSION_LT(major,minor,release) \
         (PHP_VERSION_ID <  ((major)*10000 + (minor)*100 + (release)))
-#define PHP_VERSION_GT(major,minor,release) \
+#define PHP_VERSION_GE(major,minor,release) \
         (PHP_VERSION_ID >= ((major)*10000 + (minor)*100 + (release)))
 
 #include "php_perl.h"
@@ -203,7 +203,7 @@ typedef struct php_perl_object {
 } php_perl_object;
 
 /* Three basic types used by Zend to access Perl objects (with members or offsets) */
-#if PHP_VERSION_GT(8,0,0)
+#if PHP_VERSION_GE(8,0,0)
 
 typedef zend_object *php_perl_zop;              /* Zend object pointer */
 #define php_perl_zend_from_zop(V)               (V)
@@ -264,7 +264,7 @@ static zval *php_perl_sv_to_zval( SV *sv, zval *zv );
 
 /* Handlers for Perl objects overloading */
 static zval *php_perl_read_property( php_perl_zop object, php_perl_zmp member, int type, void * *cache_slot, zval *rv );
-#if PHP_VERSION_GT(7,4,0)
+#if PHP_VERSION_GE(7,4,0)
 static zval *php_perl_write_property( php_perl_zop object, php_perl_zmp member, zval *value, void * *cache_slot );
 #else
 static void  php_perl_write_property( php_perl_zop object, php_perl_zmp member, zval *value, void * *cache_slot );
@@ -1446,7 +1446,7 @@ php_perl_read_property_cleanup:
 } /* php_perl_read_property */
 
 /* Sets property of hash based on Perl's object */
-#if PHP_VERSION_GT(7,4,0)
+#if PHP_VERSION_GE(7,4,0)
 static zval *
 php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *value, void * *cache_slot )
 #else
@@ -1539,7 +1539,7 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
   }
 
   php_perl_release_member_string(member);
-#if PHP_VERSION_GT(7,4,0)
+#if PHP_VERSION_GE(7,4,0)
   return result;
 #endif
 } /* php_perl_write_property */
@@ -1660,8 +1660,8 @@ php_perl_unset_property( php_perl_zop object, php_perl_zmp member_val, void * *c
   php_perl_release_member_string(member);
 } /* php_perl_unset_property */
 
-#if PHP_VERSION_GT(8,0,0)
-#if PHP_VERSION_GT(8,2,0)
+#if PHP_VERSION_GE(8,0,0)
+#if PHP_VERSION_GE(8,2,0)
 static zend_result
 #else
 static int
@@ -2113,7 +2113,7 @@ php_perl_iterator_dtor( zend_object_iterator *iterator )
   zval_ptr_dtor(&iterator->data);
 } /* php_perl_iterator_dtor */
 
-#if PHP_VERSION_GT(8,4,0)
+#if PHP_VERSION_GE(8,4,0)
 static zend_result
 #else
 static int
@@ -2174,7 +2174,7 @@ php_perl_iterator_rewind( zend_object_iterator *iterator )
     pobj->properties = NULL;
   }
 
-#if PHP_VERSION_GT(8,0,0)
+#if PHP_VERSION_GE(8,0,0)
   php_perl_get_properties( Z_OBJ(iterator->data) );
 #else
   php_perl_get_properties( &iterator->data );
@@ -2239,7 +2239,7 @@ PHP_MINIT_FUNCTION( perl )
 
   /* Exception raised. */
   INIT_CLASS_ENTRY( ce, "PerlException", NULL );
-#if PHP_VERSION_GT(8,5,0)
+#if PHP_VERSION_GE(8,5,0)
   php_perl_exception_ce                         = zend_register_internal_class_ex( &ce, zend_ce_exception );
 #else
   php_perl_exception_ce                         = zend_register_internal_class_ex( &ce, zend_exception_get_default() );
@@ -2268,7 +2268,7 @@ PHP_MINIT_FUNCTION( perl )
   php_perl_object_handlers.unset_dimension      = php_perl_unset_dimension;
   php_perl_object_handlers.get_properties       = php_perl_get_properties;
   php_perl_object_handlers.get_class_name       = php_perl_get_class_name;
-#if PHP_VERSION_GT(8,0,0)
+#if PHP_VERSION_GE(8,0,0)
   php_perl_object_handlers.do_operation         = php_perl_do_operation;
 #endif
 
