@@ -1979,11 +1979,9 @@ php_perl_dtor_obj( zend_object *object )
 
   /* Remove perl object if not a special operator */
   if( pobj->sv != NULL ) {
-    TRACE_MSG2( "sv ref count is %d", (int)SvREFCNT( pobj->sv ) );
-    if( SvREFCNT( pobj->sv ) >= 1 ) {
-      TRACE_MSG2( "sv free ref count " ZEND_ADDR_FMT " sv", (zend_ulong)( pobj->sv ) );
-      SvREFCNT_dec( pobj->sv );
-    }
+    TRACE_MSG3( "sv free ref count " ZEND_ADDR_FMT " sv (ref count = %d)", (zend_ulong)( pobj->sv ), (int)SvREFCNT( pobj->sv ) );
+    TRACE_ASSERT( SvREFCNT( pobj->sv ) >= 1 );
+    SvREFCNT_dec( pobj->sv );
     pobj->sv = NULL;
   }
 } /* php_perl_dtor_obj */
