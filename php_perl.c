@@ -1183,7 +1183,7 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
     php_perl_release_offset_member( mp );
   }
   else {
-    zend_error( E_WARNING, "[perl] Object is not an array" );
+    zend_error( E_WARNING, "[perl] Not an ARRAY reference" );
   }
 
   if( retval == NULL )
@@ -1226,7 +1226,7 @@ php_perl_write_dimension( php_perl_zop object, php_perl_offp offset_val, zval *v
     php_perl_release_offset_member( mp );
   }
   else {
-    zend_error( E_WARNING, "[perl] Object is not an array" );
+    zend_error( E_WARNING, "[perl] Not an ARRAY reference" );
   }
 } /* php_perl_write_dimension */
 
@@ -1277,7 +1277,7 @@ php_perl_has_dimension( php_perl_zop object, php_perl_offp offset_val, int check
     php_perl_release_offset_member( mp );
   }
   else {
-    zend_error( E_WARNING, "[perl] Object is not an array" );
+    zend_error( E_WARNING, "[perl] Not an ARRAY reference" );
   }
   return ret;
 } /* php_perl_has_dimension */
@@ -1316,7 +1316,7 @@ php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset_val )
     php_perl_release_offset_member( mp );
   }
   else {
-    zend_error( E_WARNING, "[perl] Object is not an array" );
+    zend_error( E_WARNING, "[perl] Not an ARRAY reference" );
   }
 } /* php_perl_unset_dimension */
 
@@ -1426,7 +1426,7 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
       goto php_perl_read_property_cleanup;
     }
     else {
-      zend_error( E_WARNING, "[perl] Object is not a hash" );
+      zend_error( E_WARNING, "[perl] Not a HASH reference" );
       goto php_perl_read_property_cleanup;
     }
   }
@@ -1534,7 +1534,7 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
       hv_store( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), php_perl_zval_to_sv( result ), 0 );
     }
     else {
-      zend_error( E_WARNING, "[perl] Object is not a hash" );
+      zend_error( E_WARNING, "[perl] Not a HASH reference" );
     }
   }
 
@@ -1598,7 +1598,7 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
         ret = 1;
     }
     else {
-      zend_error( E_WARNING, "[perl] Object is not a hash" );
+      zend_error( E_WARNING, "[perl] Not a HASH reference" );
       sv = NULL;
     }
   }
@@ -1654,7 +1654,7 @@ php_perl_unset_property( php_perl_zop object, php_perl_zmp member_val, void * *c
       hv_delete( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), G_DISCARD );
     }
     else {
-      zend_error( E_WARNING, "[perl] Object is not a hash" );
+      zend_error( E_WARNING, "[perl] Not a HASH reference" );
     }
   }
   php_perl_release_member_string(member);
