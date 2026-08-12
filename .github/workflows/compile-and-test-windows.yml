@@ -1,6 +1,6 @@
 name: Compile and Test (Windows)
 
-run-name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }} + Perl ${{ github.event.inputs.perlversion }}"
+run-name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }} ${{ github.event.inputs.phpts }} + Perl ${{ github.event.inputs.perlversion }}"
 
 on:
   workflow_dispatch:
@@ -28,6 +28,13 @@ on:
         - '5.40'
         - '5.38'
         - '5.36'
+      phpts:
+        description: 'PHP Thread Safety'
+        type: choice
+        default: 'nts'
+        options:
+        - 'nts'
+        - 'ts'
       runtests:
         description: 'Run Tests'
         type: boolean
@@ -40,7 +47,7 @@ permissions:
 jobs:
   build:
     runs-on: "${{ github.event.inputs.os }}"
-    name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }} + Perl ${{ github.event.inputs.perlversion }}"
+    name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }} ${{ github.event.inputs.phpts }} + Perl ${{ github.event.inputs.perlversion }}"
 
     steps:
     - name: 📥 Checkout Extension
@@ -52,23 +59,25 @@ jobs:
       with:
         php-version: "${{ github.event.inputs.phpversion }}"
       env:
-        phpts: 'nts'
+        phpts: "${{ github.event.inputs.phpts }}"
 
     - name: 📦 Install PHP Development Pack
       env:
         PHP_VERSION: "${{ steps.setup-php.outputs.php-version }}"
+        PHP_PHPTS: "${{ github.event.inputs.phpts }}"
         GITHUB_TOKEN: "${{ github.token }}"
       shell: pwsh
       run: |
         # Resolve the PHP development pack asset for this PHP version
         $phpVersion = $env:PHP_VERSION
+        $thread = if ($env:PHP_PHPTS -eq 'ts') { 'ts' } else { 'nts' }
         $major = $phpVersion -replace '^(\d+\.\d+)\..*', '$1'
         $release = Invoke-RestMethod "https://api.github.com/repos/shivammathur/php-builder-windows/releases/tags/php$major" -Headers @{ Authorization = "Bearer $env:GITHUB_TOKEN" }
-        $exact = $release.assets.name | Where-Object { $_ -match "^php-devel-pack-$([regex]::Escape($phpVersion))-nts-Win32-vs\d+-x64\.zip$" }
+        $exact = $release.assets.name | Where-Object { $_ -match "^php-devel-pack-$([regex]::Escape($phpVersion))-$thread-Win32-vs\d+-x64\.zip$" }
         $candidate = if ($exact) { $exact } else {
-          $release.assets.name | Where-Object { $_ -match '^php-devel-pack-[^-]*-nts-Win32-vs\d+-x64\.zip$' } | Select-Object -Last 1
+          $release.assets.name | Where-Object { $_ -match "^php-devel-pack-[^-]*-$thread-Win32-vs\d+-x64\.zip$" } | Select-Object -Last 1
         }
-        if (-not $candidate) { throw "No matching PHP development pack found for PHP $phpVersion" }
+        if (-not $candidate) { throw "No matching PHP development pack found for PHP $phpVersion ($thread)" }
         Write-Host "`e[32m√`e[0m Using PHP development pack: $candidate"
 
         # Download the development pack
