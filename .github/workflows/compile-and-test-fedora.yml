@@ -63,24 +63,22 @@ jobs:
       run: |
         $PHP_PREFIX/bin/phpize
         ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
-        perl -pi -e 's/(\/run-tests\.php )/$1-q /' Makefile
     - name: 🏗️ Build Extension
       run: make
     - name: 🧪 Test Extension for Functionality
       if: ${{ github.event.inputs.runtests == 'true' }}
+      env:
+        TEST_PHP_ARGS: '-q'
       run: make test
-    - name: 🛠️ Install valgrind
+    - name: 🛠️ Setup valgrind and suppressions
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
         dnf install -y valgrind
         valgrind --version
-    - name: 📄 Setup Memory Check Suppression File
-      if: ${{ github.event.inputs.runvalgrind == 'true' }}
-      run: |
         cat php_perl.supp > php_perl_fixexe.supp
-        echo "--suppressions=$PWD/php_perl_fixexe.supp" > ~/.valgrindrc
+        echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
     - name: 🔍 Test Extension for Memory Leaks
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
-      run: |
-        perl -pi -e 's/(\/run-tests\.php )/$1-m /' Makefile
-        make test
+      env:
+        TEST_PHP_ARGS: '-m -q'
+      run: make test
