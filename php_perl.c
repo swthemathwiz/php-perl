@@ -1400,11 +1400,11 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
 
     if( sv == NULL ) {
       if( pobj->context == PERL_ARRAY )
-        zend_error( E_NOTICE, "[perl] Undefined variable: '@%s'", ZSTR_VAL( member ) );
+        zend_error( E_WARNING, "[perl] Undefined variable: '@%s'", ZSTR_VAL( member ) );
       else if( pobj->context == PERL_HASH )
-        zend_error( E_NOTICE, "[perl] Undefined variable: '%%%s'", ZSTR_VAL( member ) );
+        zend_error( E_WARNING, "[perl] Undefined variable: '%%%s'", ZSTR_VAL( member ) );
       else
-        zend_error( E_NOTICE, "[perl] Undefined variable: '$%s'", ZSTR_VAL( member ) );
+        zend_error( E_WARNING, "[perl] Undefined variable: '$%s'", ZSTR_VAL( member ) );
       goto php_perl_read_property_cleanup;
     }
   }
@@ -1486,7 +1486,7 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
         zend_hash_destroy( &var_hash );
       }
       else {
-        zend_error( E_NOTICE, "[perl] array required" );
+        zend_error( E_WARNING, "[perl] Array required" );
       }
     }
     else if( pobj->context == PERL_HASH ) {
@@ -1517,7 +1517,7 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
         zend_hash_destroy( &var_hash );
       }
       else {
-        zend_error( E_NOTICE, "[perl] array required" );
+        zend_error( E_WARNING, "[perl] Array required" );
       }
     }
     else {

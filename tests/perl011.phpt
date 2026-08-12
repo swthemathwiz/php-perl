@@ -9,5 +9,5 @@ $perl = new Perl();
 var_dump($perl->tmpvar);
 ?>
 --EXPECTF--
-Notice: [perl] Undefined variable: '$tmpvar' in %s on line %d
+Warning: [perl] Undefined variable: '$tmpvar' in %s on line %d
 NULL

@@ -15,7 +15,7 @@ echo "ok\n";
 int\(1\)
 int\(1\)
 
-Notice: \[perl\] Undefined variable: '\$scalar' in .*perl074\.php on line [0-9]+
+Warning: \[perl\] Undefined variable: '\$scalar' in .*perl074\.php on line [0-9]+
 
 (Notice: Trying to get property 'a' of non-object)|(Warning: Attempt to read property "a" on null) in .*perl074\.php on line [0-9]+
 NULL
