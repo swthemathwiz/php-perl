@@ -903,7 +903,11 @@ php_perl_call_constructor( const char *class_name,
   SPAGAIN;                                                       /* refresh stack pointer            */
 
   ret = POPs;
-  SvREFCNT_inc( ret );
+
+  if( SvTRUE( ERRSV ) )
+    ret = NULL;                                                  /* leave any result for FREETMPS    */
+  else
+    SvREFCNT_inc( ret );
 
   PUTBACK;
   FREETMPS;                                                      /* free that return value           */
@@ -1740,7 +1744,7 @@ PHP_METHOD( Perl, __construct )
                                     perl_constructor, perl_constructor_len,
                                     non_class_argc, non_class_argv );
 
-    if( SvTRUE( ERRSV ) ) {
+    if( sv == NULL ) {
       STRLEN na;
       zend_throw_exception_ex( php_perl_exception_ce, 0, "[perl] constructor error: %s", SvPV( ERRSV, na ) );
       return;
