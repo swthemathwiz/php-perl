@@ -1,6 +1,0 @@
--? call internal Perl functions (print)
-   (see test: 18)
--? PHP memory leaks
-   (see tests: 53)
--  Perl memory leaks
--  get_class_name should descend to nested classes
