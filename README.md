@@ -108,13 +108,14 @@ Creates a Perl interpreter. It allows:
 Examples:
 ```php
     $perl = new Perl();
-    var_dump($perl->x);        // print scalar Perl variable - $x
-    var_dump($perl->array->x); // print array Perl variable - @x
-    var_dump($perl->hash->x);  // print hash Perl variable - %x
-    $perl->func();             // call Perl function 'func' in void context
-    $x = $perl->func();        // call Perl function 'func' in scalar context
-    $y = $perl->array->func(); // call Perl function 'func' in array context
-    $y = $perl->hash->func();  // call Perl function 'func' in hash context
+    var_dump($perl->x);         // print scalar Perl variable - $x
+    var_dump($perl->scalar->x); //   explicit alternative - $x
+    var_dump($perl->array->x);  // print array Perl variable - @x
+    var_dump($perl->hash->x);   // print hash Perl variable - %x
+    $perl->func();              // call Perl function 'func' in void context
+    $x = $perl->func();         // call Perl function 'func' in scalar context
+    $y = $perl->array->func();  // call Perl function 'func' in array context
+    $y = $perl->hash->func();   // call Perl function 'func' in hash context
 
     $perl->eval('use Digest::MD5');
     echo $perl->{'Digest::MD5::md5_hex'}('Hello');
