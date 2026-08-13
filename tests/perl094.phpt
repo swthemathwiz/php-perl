@@ -1,7 +1,7 @@
 --TEST--
-Test 94: garbage collection of cyclic perl proxies
+Test 94: garbage collecting cyclic perl proxies
 --SKIPIF--
-<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '<')) echo('skip PHP < 8.0 garbage collection of cyclic perl proxies unsupported'); ?>
+<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.1.0', '<')) echo('skip PHP < 8.1 garbage collection of cyclic perl proxies unsupported'); ?>
 --FILE--
 <?php
 $perl = new Perl();
