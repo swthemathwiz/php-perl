@@ -1,0 +1,61 @@
+name: Compile and Test (Matrix)
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtests:
+        description: 'Run Tests'
+        type: boolean
+        default: true
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: "PHP ${{ matrix.php-version }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['7.4', '8.5']
+
+    steps:
+    - name: 📥 Checkout Extension
+      uses: actions/checkout@v6
+
+    - name: 🐘 Set up PHP
+      id: setup-php
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: "${{ matrix.php-version }}"
+        tools: phpize, php-config
+
+    - name: 🐪 Install Perl Development
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libperl-dev
+
+    - name: ℹ️ Establish OS, PHP and Perl Versions
+      run: |
+        grep PRETTY_NAME /etc/os-release
+        php -v
+        phpize --version
+        php-config --version
+        perl -v | head -n 2
+
+    - name: ⚙️ Configure PHP Perl Extension
+      run: |
+        phpize
+        ./configure --with-perl=/usr --with-php-config="$(command -v php-config)"
+
+    - name: 🏗️ Build Extension
+      run: make
+
+    - name: 🧪 Test Extension for Functionality
+      if: ${{ github.event.inputs.runtests == 'true' }}
+      env:
+        TEST_PHP_ARGS: '-q'
+      run: make test
+
+    - name: 🎉 Report Success
+      if: success()
+      run: echo "::notice::PHP ${{ matrix.php-version }} passed"
