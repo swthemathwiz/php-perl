@@ -3,11 +3,14 @@ name: Compile and Test (Matrix)
 on:
   workflow_dispatch:
     inputs:
-      runtests:
-        description: 'Run Tests'
-        type: boolean
-        default: true
+      matrix-size:
+        description: 'Test matrix: full or quick'
+        type: choice
+        default: full
         required: true
+        options:
+          - full
+          - quick
 
 jobs:
   build:
@@ -16,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
+        php-version: ${{ fromJSON(inputs.matrix-size == 'quick' && '["7.4","8.0","8.5"]' || '["7.3","7.4","8.0","8.1","8.2","8.3","8.4","8.5","8.6"]') }}
 
     steps:
     - name: 📥 Checkout Extension
@@ -58,7 +61,6 @@ jobs:
 
     - name: 🧪 Test Extension for Functionality
       id: test
-      if: ${{ github.event.inputs.runtests == 'true' }}
       env:
         TEST_PHP_ARGS: '-q'
       run: make test
