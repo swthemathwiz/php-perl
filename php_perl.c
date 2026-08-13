@@ -51,6 +51,7 @@ typedef struct DIR_W32 DIR;
 #include "php.h"
 #include "zend_objects_API.h"
 #include "zend_exceptions.h"
+#include "zend_interfaces.h"
 #include "ext/standard/info.h"
 #include "SAPI.h"
 
