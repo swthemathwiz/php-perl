@@ -51,7 +51,6 @@ typedef struct DIR_W32 DIR;
 #include "php.h"
 #include "zend_objects_API.h"
 #include "zend_exceptions.h"
-#include "zend_extensions.h"
 #include "ext/standard/info.h"
 #include "SAPI.h"
 
@@ -1949,6 +1948,21 @@ php_perl_get_class_name( const zend_object *object )
   return ret;
 } /* php_perl_get_class_name */
 
+/* Expose references held by the object to the garbage collector */
+static HashTable *
+php_perl_get_gc( php_perl_zop object, zval **table, int *n )
+{
+  TRACE_SUB( "php_perl_get_gc" );
+
+  php_perl_object *pobj = php_perl_from_zop( object );
+
+  TRACE_ZOP( "get gc" );
+
+  *table = NULL;
+  *n = 0;
+  return pobj->properties;
+} /* php_perl_get_gc */
+
 /* Remove an object from the system */
 static void
 php_perl_dtor_obj( zend_object *object )
@@ -2270,6 +2284,7 @@ PHP_MINIT_FUNCTION( perl )
   php_perl_object_handlers.unset_dimension      = php_perl_unset_dimension;
   php_perl_object_handlers.get_properties       = php_perl_get_properties;
   php_perl_object_handlers.get_class_name       = php_perl_get_class_name;
+  php_perl_object_handlers.get_gc               = php_perl_get_gc;
 #if PHP_VERSION_GE(8,0,0)
   php_perl_object_handlers.do_operation         = php_perl_do_operation;
 #endif
