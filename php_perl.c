@@ -2263,7 +2263,14 @@ PHP_MINIT_FUNCTION( perl )
 
   /* Class of perl objects. */
   INIT_CLASS_ENTRY( ce, "Perl", perl_methods );
-  php_perl_ce                                   = zend_register_internal_class_with_flags( &ce, NULL, ZEND_ACC_NOT_SERIALIZABLE );
+#if PHP_VERSION_GE(8,1,0)
+  php_perl_ce                                   = zend_register_internal_class_ex( &ce, NULL );
+  php_perl_ce->ce_flags                        |= ZEND_ACC_NOT_SERIALIZABLE;
+#else
+  ce.serialize                                  = zend_class_serialize_deny;
+  ce.unserialize                                = zend_class_unserialize_deny;
+  php_perl_ce                                   = zend_register_internal_class( &ce );
+#endif
   php_perl_ce->create_object                    = php_perl_create_object;
   php_perl_ce->get_iterator                     = php_perl_get_iterator;
 
