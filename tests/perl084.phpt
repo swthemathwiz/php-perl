@@ -21,8 +21,11 @@ try {
 } catch (Exception $e) {
   echo "serialize: " . get_class($e) . ": " . $e->getMessage() . "\n";
 }
+$data = version_compare(phpversion(), '8.1.0', '<')
+  ? 'C:4:"Perl":0:{}'
+  : 'O:4:"Perl":1:{s:1:"a";i:1;}';
 try {
-  unserialize('O:4:"Perl":1:{s:1:"a";i:1;}');
+  unserialize($data);
   echo "unserialize ok\n";
 } catch (Throwable $e) {
   echo "unserialize: " . get_class($e) . ": " . $e->getMessage() . "\n";
