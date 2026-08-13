@@ -58,7 +58,7 @@ jobs:
       run: make test
 
     - name: 📄 Show Test Outputs on Failure
-      if: ${{ steps.test.outcome == 'failure' }}
+      if: ${{ failure() && steps.test.outcome == 'failure' }}
       run: |
         for f in tests/*.out; do
           [ -e "$f" ] || continue
