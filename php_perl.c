@@ -61,16 +61,14 @@ typedef struct DIR_W32 DIR;
 #define PHP_VERSION_GE(major,minor,release) \
         (PHP_VERSION_ID >= ((major)*10000 + (minor)*100 + (release)))
 
-/* ZEND_LTOA_BUF_LEN was removed in PHP 8.6 */
-#ifndef ZEND_LTOA_BUF_LEN
-#define ZEND_LTOA_BUF_LEN 65
+#ifndef ZEND_THIS
+#define ZEND_THIS (&EX(This))
 #endif
 
 #include "php_perl.h"
 
-#ifndef ZEND_THIS
-#define ZEND_THIS (&EX(This))
-#endif
+/* Over-sized buffer size for formatting a key as a zend_ulong or an address. */
+#define PHP_PERL_ZEND_LONG_BUF_LEN (sizeof(zend_ulong) * 8)
 
 /* The TRACE_* macros and the TRACE_EXPOSE_START_STOP test functions are
  * enabled with the --enable-perl-trace configuration switch (see config.m4). */
@@ -415,7 +413,7 @@ binary_hash_add( HashTable *hash, const void *key, void *data )
     zend_hash_index_add_ptr( hash, (zend_ulong)key, data );
   }
   else {
-    char key_str[ZEND_LTOA_BUF_LEN];
+    char key_str[PHP_PERL_ZEND_LONG_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
     TRACE_MSG3( "key = %s <-> " ZEND_ADDR_FMT, key_str, (size_t)data );
 
@@ -434,7 +432,7 @@ binary_hash_del( HashTable *hash, const void *key )
     zend_hash_index_del( hash, (zend_ulong)key );
   }
   else {
-    char key_str[ZEND_LTOA_BUF_LEN];
+    char key_str[PHP_PERL_ZEND_LONG_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
     TRACE_MSG2( "key = %s deleted", key_str );
     zend_hash_str_del( hash, key_str, strlen( key_str ) );
@@ -451,7 +449,7 @@ binary_hash_find( HashTable *hash, const void *key, void * *data )
     TRACE_MSG3( "key = " ZEND_ADDR_FMT " %s", (size_t)key, ( *data == NULL ) ? "not found" : "found" );
   }
   else {
-    char key_str[ZEND_LTOA_BUF_LEN];
+    char key_str[PHP_PERL_ZEND_LONG_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
     *data = zend_hash_str_find_ptr( hash, key_str, strlen( key_str ) );
     TRACE_MSG3( "key = %s %s", key_str, ( *data == NULL ) ? "not found" : "found" );
@@ -684,7 +682,7 @@ php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
             zend_ulong   index;
 
             if( zend_hash_get_current_key_ex( ht, &key, &index, &hpos ) != HASH_KEY_IS_STRING ) {
-              char xkey[ZEND_LTOA_BUF_LEN];
+              char xkey[PHP_PERL_ZEND_LONG_BUF_LEN];
               zend_sprintf( xkey, ZEND_ULONG_FMT, index );
               hv_store( hv, xkey, strlen( xkey ), php_perl_zval_to_sv_ref( zend_hash_get_current_data_ex( ht, &hpos ), var_hash ), 0 );
             }
@@ -1513,7 +1511,7 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
           zend_ulong   index;
 
           if( zend_hash_get_current_key_ex( ht, &key, &index, &hpos ) != HASH_KEY_IS_STRING ) {
-            char xkey[ZEND_LTOA_BUF_LEN];
+            char xkey[PHP_PERL_ZEND_LONG_BUF_LEN];
             zend_sprintf( xkey, ZEND_ULONG_FMT, index );
             result = zend_hash_get_current_data_ex( ht, &hpos );
             hv_store( hv, xkey, strlen( xkey ), php_perl_zval_to_sv_ref( result, &var_hash ), 0 );
