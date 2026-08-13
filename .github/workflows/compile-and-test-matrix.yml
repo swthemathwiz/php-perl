@@ -43,12 +43,18 @@ jobs:
         perl -v | head -n 2
 
     - name: ⚙️ Configure PHP Perl Extension
+      id: configure
       run: |
         phpize
         ./configure --with-perl=/usr --with-php-config="$(command -v php-config)"
 
     - name: 🏗️ Build Extension
+      id: build
       run: make
+
+    - name: ❌ Report Compilation Failure
+      if: ${{ failure() && (steps.configure.outcome == 'failure' || steps.build.outcome == 'failure') }}
+      run: echo "::error::PHP ${{ matrix.php-version }} failed compilation"
 
     - name: 🧪 Test Extension for Functionality
       id: test
@@ -60,12 +66,20 @@ jobs:
     - name: 📄 Show Test Outputs on Failure
       if: ${{ failure() && steps.test.outcome == 'failure' }}
       run: |
+        echo "::error::PHP ${{ matrix.php-version }} failed tests"
         for f in tests/*.out; do
           [ -e "$f" ] || continue
+          if grep -q -- '--XFAIL--' "${f%.out}.phpt" 2>/dev/null; then
+            continue
+          fi
           echo "===== $f ====="
           cat "$f"
           echo
         done
+
+    - name: ❗ Report Generic Failure
+      if: ${{ failure() && steps.configure.outcome != 'failure' && steps.build.outcome != 'failure' && steps.test.outcome != 'failure' }}
+      run: echo "::error::PHP ${{ matrix.php-version }} failed"
 
     - name: 🎉 Report Success
       if: success()
