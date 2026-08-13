@@ -17,21 +17,9 @@ package Foo;
 PERL_END
 );
 $foo = new Perl("Foo");
-$j = json_decode(json_encode($foo), true);
-ksort($j);
-var_dump($j);
+echo json_encode($foo), "\n";
 echo "ok\n";
 ?>
 --EXPECT--
-array(2) {
-  ["a"]=>
-  int(1)
-  ["b"]=>
-  array(2) {
-    [0]=>
-    int(2)
-    [1]=>
-    int(3)
-  }
-}
+{"a":1,"b":[2,3]}
 ok
