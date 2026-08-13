@@ -61,6 +61,11 @@ typedef struct DIR_W32 DIR;
 #define PHP_VERSION_GE(major,minor,release) \
         (PHP_VERSION_ID >= ((major)*10000 + (minor)*100 + (release)))
 
+/* ZEND_LTOA_BUF_LEN was removed in PHP 8.6 */
+#ifndef ZEND_LTOA_BUF_LEN
+#define ZEND_LTOA_BUF_LEN 65
+#endif
+
 #include "php_perl.h"
 
 #ifndef ZEND_THIS
@@ -1266,7 +1271,7 @@ php_perl_has_dimension( php_perl_zop object, php_perl_offp offset_val, int check
       if( prop_val != NULL ) {
         zval zv;
         ZVAL_UNDEF( &zv );
-        ret = zval_is_true( php_perl_sv_to_zval( *prop_val, &zv ) );
+        ret = zend_is_true( php_perl_sv_to_zval( *prop_val, &zv ) );
         zval_ptr_dtor( &zv );
       }
     }
@@ -1614,7 +1619,7 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
     php_perl_sv_to_zval( sv, &zv );
     /* (isset) whether property exists and is true */
     if( has_set_exists == 1 )
-      ret = zval_is_true( &zv );
+      ret = zend_is_true( &zv );
     /* (has) whether property exists and is not NULL */
     else
       ret = !zval_is_null( &zv );
