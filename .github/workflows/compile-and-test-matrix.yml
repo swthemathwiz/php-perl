@@ -11,11 +11,24 @@ on:
         options:
           - full
           - quick
+      os:
+        description: 'OS'
+        type: choice
+        default: ubuntu-latest
+        required: true
+        options:
+          - ubuntu-latest
+          - ubuntu-26.04
+          - ubuntu-24.04
+          - ubuntu-22.04
+          - ubuntu-26.04-arm
+          - ubuntu-24.04-arm
+          - ubuntu-22.04-arm
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    name: "PHP ${{ matrix.php-version }}"
+    runs-on: "${{ inputs.os }}"
+    name: "${{ inputs.os }} | PHP ${{ matrix.php-version }}"
     strategy:
       fail-fast: false
       matrix:
