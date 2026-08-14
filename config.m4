@@ -37,5 +37,9 @@ if test "$PHP_PERL" != "no"; then
   PHP_SUBST(EXTRA_CFLAGS)
   PHP_SUBST(EXTRA_LDFLAGS)
 
+  dnl Standard extension setup
   PHP_NEW_EXTENSION(perl, php_perl.c, $ext_shared)
+
+  dnl Pull in Makefile.frag
+  PHP_ADD_MAKEFILE_FRAGMENT
 fi

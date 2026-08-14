@@ -1,5 +1,6 @@
 Makefile
 Makefile.*
+!Makefile.frag
 ac*.m4
 autom4te.cache/*
 build/*
@@ -34,3 +35,4 @@ modules/*
 perl.la
 php_perl.dep
 php_perl.lo
+php_perl-*-src.tgz
