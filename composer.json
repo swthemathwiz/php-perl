@@ -3,7 +3,7 @@
     "type": "php-ext",
     "description": "PHP extension for running Perl code from PHP",
     "keywords": [ "languages", "extension", "Perl" ],
-    "license": "The PHP License, version 3.0",
+    "license": "PHP-3.0",
     "require": {
         "php": ">=7.4"
     },
