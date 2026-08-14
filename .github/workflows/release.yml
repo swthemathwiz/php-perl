@@ -66,8 +66,8 @@ jobs:
 
     - name: 📦 Generate source tarball
       run: |
-        git archive --format=tar.gz --prefix=php_perl-$VER/ -o php_perl-$VER-src.tgz "$TAG"
-        ls -la php_perl-$VER-src.tgz
+        git archive --format=tar.gz --prefix=php_perl-$TAG/ -o php_perl-$TAG-src.tgz "$TAG"
+        ls -la php_perl-$TAG-src.tgz
 
     - name: 🚀 Create GitHub Release
       uses: softprops/action-gh-release@v3
@@ -75,7 +75,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.TAG }}
-        files: php_perl-${{ env.VER }}-src.tgz
+        files: php_perl-${{ env.TAG }}-src.tgz
         generate_release_notes: true
         fail_on_unmatched_files: true
         name: PHP Perl ${{ env.VER }}
