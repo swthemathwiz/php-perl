@@ -41,7 +41,7 @@ modifications are released under the same license.
 
 Requirements
 ============
-  - PHP 7.3/7.4 or later; PHP 8.x with additional caveats
+  - PHP 7.4 or later; PHP 8.x with additional caveats
   - Perl 5.8.0 or later with the `ExtUtils::Embed` module
 
 Quick Install
@@ -221,14 +221,12 @@ The status of the most recent testing follows:
 
   | OS               | PHP Version | Perl Version | Status                                          |
   | ---------------- | ----------- | ------------ | ----------------------------------------------- |
-  | Ubuntu 18.04 LTS | 7.3.33      | 5.26.1       | All Passed                                      |
   | Ubuntu 20.04 LTS | 7.4.26      | 5.30.0       | All Passed                                      |
   | Ubuntu 20.04 LTS | 8.0.13      | 5.30.0       | PHP 8.x References to Perl variables not usable |
   | Ubuntu 20.04 LTS | 8.1.0       | 5.30.0       | PHP 8.x References to Perl variables not usable |
   | Ubuntu 22.04 LTS | 8.1.2       | 5.34.0       | PHP 8.x References to Perl variables not usable |
   | Ubuntu 24.04 LTS | 8.3.6       | 5.38.2       | PHP 8.x References to Perl variables not usable |
   | Ubuntu 26.04 LTS | 8.5.4       | 5.40.1       | PHP 8.x References to Perl variables not usable |
-  | Fedora 30        | 7.3.18      | 5.28.2       | All Passed                                      |
   | Fedora 34        | 7.4.27      | 5.32.1       | All Passed                                      |
   | Fedora 35        | 8.0.13      | 5.34.0       | PHP 8.x References to Perl variables not usable |
   | Fedora 38        | 8.2.8       | 5.36.1       | PHP 8.x References to Perl variables not usable |

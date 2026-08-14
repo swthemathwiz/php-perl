@@ -267,11 +267,7 @@ static zval *php_perl_sv_to_zval( SV *sv, zval *zv );
 
 /* Handlers for Perl objects overloading */
 static zval *php_perl_read_property( php_perl_zop object, php_perl_zmp member, int type, void * *cache_slot, zval *rv );
-#if PHP_VERSION_GE(7,4,0)
 static zval *php_perl_write_property( php_perl_zop object, php_perl_zmp member, zval *value, void * *cache_slot );
-#else
-static void  php_perl_write_property( php_perl_zop object, php_perl_zmp member, zval *value, void * *cache_slot );
-#endif
 static int   php_perl_has_property( php_perl_zop object, php_perl_zmp member, int has_set_exists, void * *cache_slot );
 static void  php_perl_unset_property( php_perl_zop object, php_perl_zmp member, void * *cache_slot );
 
@@ -1453,13 +1449,8 @@ php_perl_read_property_cleanup:
 } /* php_perl_read_property */
 
 /* Sets property of hash based on Perl's object */
-#if PHP_VERSION_GE(7,4,0)
 static zval *
 php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *value, void * *cache_slot )
-#else
-static void
-php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *value, void * *cache_slot )
-#endif
 {
   TRACE_SUB( "php_perl_write_property" );
 
@@ -1546,9 +1537,7 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
   }
 
   php_perl_release_member_string(member);
-#if PHP_VERSION_GE(7,4,0)
   return result;
-#endif
 } /* php_perl_write_property */
 
 /* Checks if property of hash based on Perl's object isset or empty */
