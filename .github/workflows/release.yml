@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout Extension
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: 🐘 Install PHP and Perl Development
+      run: |
+        sudo apt-get install -qq php php-dev libperl-dev
+
+    - name: 🏷️ Resolve version from tag
+      id: version
+      run: |
+        echo "VER=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+    - name: 🔎 Check version matches php_perl.h
+      run: |
+        header_version=$(sed -n 's/^#define PHP_PERL_VERSION "\([^"]*\)".*/\1/p' php_perl.h)
+        if [ "$header_version" != "$VER" ]; then
+          echo "::error::php_perl.h version '$header_version' does not match tag version '$VER'" >&2
+          exit 1
+        fi
+        echo "Version OK: $VER"
+
+    - name: ⚙️ Configure PHP Perl Extension
+      run: |
+        /usr/bin/phpize
+        ./configure --with-perl=/usr --with-php-config=/usr/bin/php-config
+
+    - name: 🏗️ Build Extension
+      run: make
+
+    - name: 🧪 Test Extension for Functionality
+      env:
+        TEST_PHP_ARGS: '-q'
+      run: |
+        make test
+
+    - name: 📦 Generate source tarball
+      run: |
+        git archive --format=tar.gz --prefix=php_perl-$VER/ -o php_perl-$VER-src.tgz "$GITHUB_REF_NAME"
+        ls -la php_perl-$VER-src.tgz
+
+    - name: 🚀 Create GitHub Release
+      uses: softprops/action-gh-release@v3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.GITHUB_REF_NAME }}
+        files: php_perl-$VER-src.tgz
+        generate_release_notes: true
+        fail_on_unmatched_files: true
+        name: PHP Perl Extension (version ${{ env.VER }})
