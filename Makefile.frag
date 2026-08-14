@@ -2,7 +2,7 @@
 
 # File naming conventions for pie 
 #
-# php_{ExtensionName}-{Version}-src.tgz (e.g. php_myext-1.20.1-src.tgz)
+# php_{ExtensionName}-v{Version}-src.tgz (e.g. php_myext-v1.20.1-src.tgz)
 #
 ext_name = perl
 
@@ -12,12 +12,12 @@ ifeq ($(ext_version),)
 $(error Cannot extract PHP_PERL_VERSION from $(top_srcdir)/php_perl.h)
 endif
 
-ext_file_prefix = php_$(ext_name)-$(ext_version)
-tarball = $(ext_file_prefix)-src.tgz
+ext_archive_prefix = php_$(ext_name)-v$(ext_version)
+tarball = $(ext_archive_prefix)-src.tgz
 
 dist:
 	@echo "Creating source distribution tarball..."
-	git archive --format=tar.gz --prefix=$(ext_file_prefix)/ HEAD > $(tarball)
+	git archive --format=tar.gz --prefix=$(ext_archive_prefix)/ HEAD > $(tarball)
 	@echo "Tarball created: $(tarball)"
 
 # Remove generated build/test artifacts on clean
