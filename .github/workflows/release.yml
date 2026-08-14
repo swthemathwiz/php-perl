@@ -17,16 +17,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-    - name: 📥 Checkout Extension
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
-        ref: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref }}
-
-    - name: 🐘 Install PHP and Perl Development
-      run: |
-        sudo apt-get install -qq php php-dev libperl-dev
-
     - name: 🏷️ Resolve version and tag
       id: version
       run: |
@@ -40,6 +30,16 @@ jobs:
         echo "VER=$VER" >> "$GITHUB_ENV"
         echo "TAG=$TAG" >> "$GITHUB_ENV"
         echo "Trigger: ${{ github.event_name }}, VER=$VER, TAG=$TAG"
+
+    - name: 📥 Checkout Extension
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        ref: ${{ env.TAG }}
+
+    - name: 🐘 Install PHP and Perl Development
+      run: |
+        sudo apt-get install -qq php php-dev libperl-dev
 
     - name: 🔎 Check version matches php_perl.h
       run: |
@@ -78,4 +78,4 @@ jobs:
         files: php_perl-${{ env.VER }}-src.tgz
         generate_release_notes: true
         fail_on_unmatched_files: true
-        name: PHP Perl Extension (version ${{ env.VER }})
+        name: PHP Perl ${{ env.VER }}
