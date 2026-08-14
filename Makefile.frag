@@ -20,10 +20,10 @@ dist:
 	git archive --format=tar.gz --prefix=$(ext_file_prefix)/ HEAD > $(tarball)
 	@echo "Tarball created: $(tarball)"
 
-# Remove autotools/editor backup files on clean
-clean: clean-backups
+# Remove generated build/test artifacts on clean
+clean: clean-artifacts
 
-.PHONY: clean-backups
+.PHONY: clean-artifacts
 
-clean-backups:
-	rm -f config*~
+clean-artifacts:
+	rm -f config*~ tmp-php.ini php_test_results_*.txt
