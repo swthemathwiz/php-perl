@@ -1,0 +1,22 @@
+{
+    "name": "swthemathwiz/php-perl",
+    "type": "php-ext",
+    "description": "PHP extension for running Perl code from PHP",
+    "keywords": [ "languages", "extension", "Perl" ],
+    "license": "The PHP License, version 3.0",
+    "require": {
+        "php": ">=7.4"
+    },
+    "php-ext": {
+        "extension-name": "perl",
+        "download-url-method": ["pre-packaged-source", "composer-default"],
+        "configure-options": [
+            {
+                "name": "with-perl",
+                "description": "path of Perl directory prefix; omit -> auto-detect",
+                "needs-value": true
+            }
+        ]
+    }
+}
+
