@@ -1,6 +1,6 @@
 name: Compile and Test (Fedora)
 
-run-name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
+run-name: "${{ github.event.inputs.os }} | PHP-distro"
 
 on:
   workflow_dispatch:
@@ -14,19 +14,6 @@ on:
         - 'fedora:44'
         - 'fedora:43'
         - 'fedora:42'
-      phpversion:
-        description: 'PHP Version (informational only - Fedora ships a single distro PHP)'
-        type: choice
-        default: 'distro'
-        options:
-        - 'distro'
-        - '8.5'
-        - '8.4'
-        - '8.3'
-        - '8.2'
-        - '8.1'
-        - '8.0'
-        - '7.4'
       runtests:
         description: 'Run Tests'
         type: boolean
@@ -44,7 +31,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
+    name: "${{ github.event.inputs.os }} | PHP-distro"
     container: "${{ github.event.inputs.os }}"
 
     steps:
