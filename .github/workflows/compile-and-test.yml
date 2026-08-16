@@ -36,6 +36,9 @@ on:
         default: true
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: "${{ github.event.inputs.os }}"
