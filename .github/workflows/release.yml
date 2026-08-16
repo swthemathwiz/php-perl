@@ -64,10 +64,11 @@ jobs:
       run: |
         make test
 
-    - name: 📦 Generate source tarball
+    - name: 📦 Generate source tarball and checksum
       run: |
         git archive --format=tar.gz --prefix=php_perl-$TAG/ -o php_perl-$TAG-src.tgz "$TAG"
-        ls -la php_perl-$TAG-src.tgz
+        sha256sum php_perl-$TAG-src.tgz > php_perl-$TAG-src.tgz.sha256
+        ls -la php_perl-$TAG-src.tgz*
 
     - name: 🚀 Create GitHub Release
       uses: softprops/action-gh-release@v3
@@ -75,7 +76,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.TAG }}
-        files: php_perl-${{ env.TAG }}-src.tgz
+        files: |
+          php_perl-${{ env.TAG }}-src.tgz
+          php_perl-${{ env.TAG }}-src.tgz.sha256
         generate_release_notes: true
         fail_on_unmatched_files: true
         name: PHP Perl ${{ env.VER }}
