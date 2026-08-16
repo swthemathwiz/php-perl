@@ -21,20 +21,13 @@ on:
         - '8.5'
         - '8.4'
       perlversion:
-        description: 'Perl Version (must support the selected MSVC toolset)'
+        description: 'Perl Version (must support the detected MSVC toolset)'
         type: choice
         default: '5.40'
         options:
         - '5.40'
         - '5.38'
         - '5.36'
-      cctype:
-        description: 'MSVC toolset version for Perl build (e.g. 14.3 = MSVC143)'
-        type: choice
-        default: '14.3'
-        required: true
-        options:
-        - '14.3'
       phpts:
         description: 'PHP Thread Safety'
         type: choice
@@ -132,7 +125,6 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
-        toolset: ${{ inputs.cctype }}
 
     - name: 🧭 Ensure MSVC tools precede MSYS2 on PATH
       shell: pwsh
@@ -160,12 +152,23 @@ jobs:
         Write-Host "Resolved Runner ImageOS: $os"
         Add-Content -Path $env:GITHUB_ENV -Value "RESOLVED_OS=$os"
 
+    - name: 🔍 Detect MSVC toolset version
+      shell: pwsh
+      run: |
+        $src = Join-Path $env:RUNNER_TEMP 'mscver.c'
+        Set-Content -Path $src -Value 'CompilerVersion=_MSC_VER'
+        $line = (& cl /nologo /EP $src | Select-Object -Last 1).Trim()
+        if ($line -notmatch '^CompilerVersion=(\d+)$') { throw "Unexpected cl output: $line" }
+        $mscVer = $Matches[1]
+        Add-Content -Path $env:GITHUB_ENV -Value "MSC_VER=$mscVer"
+        Write-Host "Detected _MSC_VER: $mscVer"
+
     - name: 💾 Cache MSVC Perl Build
       id: cache-perl
       uses: actions/cache@v6
       with:
         path: ${{ runner.temp }}/perl-msvc
-        key: perl-msvc-${{ env.PERL_VERSION_TAG }}-${{ env.RESOLVED_OS }}-msvc-${{ inputs.cctype }}
+        key: perl-msvc-${{ env.PERL_VERSION_TAG }}-${{ env.RESOLVED_OS }}-msvc-${{ env.MSC_VER }}
 
     - name: 🐪 Checkout Perl
       if: steps.cache-perl.outputs.cache-hit != 'true'
@@ -178,14 +181,17 @@ jobs:
 
     - name: 🏗️ Build MSVC Perl
       if: steps.cache-perl.outputs.cache-hit != 'true'
-      env:
-        CCTYPE: "${{ inputs.cctype }}"
       shell: pwsh
       run: |
         $srcDir = Join-Path $env:GITHUB_WORKSPACE 'perl-src'
         $makefile = Join-Path $srcDir 'win32\Makefile'
-        $perlCctype = "MSVC" + ($env:CCTYPE -replace '\.', '')
-        (Get-Content $makefile) -replace "^#CCTYPE\t+= $perlCctype", "CCTYPE`t`t= $perlCctype" | Set-Content $makefile
+        $mscVer = [int]$env:MSC_VER
+        if ($mscVer -ge 1950)     { $cctype = 'MSVC145' }   # VS2026 (14.5x)
+        elseif ($mscVer -ge 1930) { $cctype = 'MSVC143' }   # VS2022 (14.3x + 14.4x)
+        elseif ($mscVer -ge 1920) { $cctype = 'MSVC142' }   # VS2019
+        elseif ($mscVer -ge 1910) { $cctype = 'MSVC141' }   # VS2017
+        else                      { $cctype = 'MSVC140' }   # VS2015
+        (Get-Content $makefile) -replace "^#CCTYPE\t+= $cctype", "CCTYPE`t`t= $cctype" | Set-Content $makefile
 
         $prefix = Join-Path $env:RUNNER_TEMP 'perl-msvc'
         Push-Location (Join-Path $srcDir 'win32')
