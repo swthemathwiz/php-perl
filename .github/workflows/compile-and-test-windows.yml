@@ -21,13 +21,20 @@ on:
         - '8.5'
         - '8.4'
       perlversion:
-        description: 'Perl Version (must support the MSVC143 toolset)'
+        description: 'Perl Version (must support the selected MSVC toolset)'
         type: choice
         default: '5.40'
         options:
         - '5.40'
         - '5.38'
         - '5.36'
+      cctype:
+        description: 'MSVC toolset version for Perl build (e.g. 14.3 = MSVC143)'
+        type: choice
+        default: '14.3'
+        required: true
+        options:
+        - '14.3'
       phpts:
         description: 'PHP Thread Safety'
         type: choice
@@ -125,6 +132,7 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
+        toolset: ${{ inputs.cctype }}
 
     - name: 🧭 Ensure MSVC tools precede MSYS2 on PATH
       shell: pwsh
@@ -157,7 +165,7 @@ jobs:
       uses: actions/cache@v6
       with:
         path: ${{ runner.temp }}/perl-msvc
-        key: perl-msvc-${{ env.PERL_VERSION_TAG }}-${{ env.RESOLVED_OS }}
+        key: perl-msvc-${{ env.PERL_VERSION_TAG }}-${{ env.RESOLVED_OS }}-msvc-${{ inputs.cctype }}
 
     - name: 🐪 Checkout Perl
       if: steps.cache-perl.outputs.cache-hit != 'true'
@@ -170,11 +178,14 @@ jobs:
 
     - name: 🏗️ Build MSVC Perl
       if: steps.cache-perl.outputs.cache-hit != 'true'
+      env:
+        CCTYPE: "${{ inputs.cctype }}"
       shell: pwsh
       run: |
         $srcDir = Join-Path $env:GITHUB_WORKSPACE 'perl-src'
         $makefile = Join-Path $srcDir 'win32\Makefile'
-        (Get-Content $makefile) -replace '^#CCTYPE\t+= MSVC143', "CCTYPE`t`t= MSVC143" | Set-Content $makefile
+        $perlCctype = "MSVC" + ($env:CCTYPE -replace '\.', '')
+        (Get-Content $makefile) -replace "^#CCTYPE\t+= $perlCctype", "CCTYPE`t`t= $perlCctype" | Set-Content $makefile
 
         $prefix = Join-Path $env:RUNNER_TEMP 'perl-msvc'
         Push-Location (Join-Path $srcDir 'win32')
