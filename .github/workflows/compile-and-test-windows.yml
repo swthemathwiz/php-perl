@@ -154,7 +154,7 @@ jobs:
 
     - name: 💾 Cache MSVC Perl Build
       id: cache-perl
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ${{ runner.temp }}/perl-msvc
         key: perl-msvc-${{ env.PERL_VERSION_TAG }}-${{ env.RESOLVED_OS }}
