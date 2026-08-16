@@ -133,7 +133,7 @@ jobs:
           Where-Object { $_ -match 'Microsoft Visual Studio|Windows Kits' } |
           ForEach-Object { Add-Content -Path $env:GITHUB_PATH -Value $_ }
 
-    - name: 🏷️ Resolve Perl release tag
+    - name: 🏷️ Resolve Perl release tag and OS image
       env:
         PERL_VERSION: "${{ github.event.inputs.perlversion }}"
       shell: pwsh
@@ -148,12 +148,16 @@ jobs:
         Write-Host "Selected Perl release tag: $tag"
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_VERSION_TAG=$tag"
 
+        $os = if ($env:ImageOS) { $env:ImageOS } else { 'windows' }
+        Write-Host "Resolved Runner ImageOS: $os"
+        Add-Content -Path $env:GITHUB_ENV -Value "RESOLVED_OS=$os"
+
     - name: 💾 Cache MSVC Perl Build
       id: cache-perl
       uses: actions/cache@v4
       with:
         path: ${{ runner.temp }}/perl-msvc
-        key: perl-msvc-${{ env.PERL_VERSION_TAG }}-${{ runner.os }}
+        key: perl-msvc-${{ env.PERL_VERSION_TAG }}-${{ env.RESOLVED_OS }}
 
     - name: 🐪 Checkout Perl
       if: steps.cache-perl.outputs.cache-hit != 'true'
