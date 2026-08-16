@@ -148,7 +148,15 @@ jobs:
         Write-Host "Selected Perl release tag: $tag"
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_VERSION_TAG=$tag"
 
+    - name: 💾 Cache MSVC Perl Build
+      id: cache-perl
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/perl-msvc
+        key: perl-msvc-${{ env.PERL_VERSION_TAG }}-${{ runner.os }}
+
     - name: 🐪 Checkout Perl
+      if: steps.cache-perl.outputs.cache-hit != 'true'
       uses: actions/checkout@v6
       with:
         repository: Perl/perl5
@@ -157,6 +165,7 @@ jobs:
         fetch-depth: 1
 
     - name: 🏗️ Build MSVC Perl
+      if: steps.cache-perl.outputs.cache-hit != 'true'
       shell: pwsh
       run: |
         $srcDir = Join-Path $env:GITHUB_WORKSPACE 'perl-src'
@@ -169,13 +178,17 @@ jobs:
           nmake INST_TOP=$prefix
           if ($LASTEXITCODE -ne 0) { throw 'nmake failed' }
           nmake installbare INST_TOP=$prefix
-          if ($LASTEXITCODE -ne 0) { throw 'nmake installbare failed' }
+          if ($LASTEXITCODE -ne 0) { throw 'nmake install failed' }
         } finally {
           Pop-Location
         }
 
         if (-not (Test-Path (Join-Path $prefix 'lib\CORE\EXTERN.h'))) { throw 'Perl headers not installed to lib\CORE' }
 
+    - name: ⚙️ Export Perl Environment Variables
+      shell: pwsh
+      run: |
+        $prefix = Join-Path $env:RUNNER_TEMP 'perl-msvc'
         Add-Content -Path $env:GITHUB_ENV -Value "PERL_PREFIX=$prefix"
         Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'bin')
         Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $prefix 'lib\CORE')
