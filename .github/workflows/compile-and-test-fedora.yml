@@ -36,7 +36,7 @@ jobs:
 
     steps:
     - name: 📥 Checkout Extension
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: 🐘 Install PHP and Perl Development
       run: |
         dnf install -y php-cli php-devel perl-devel make gcc perl-ExtUtils-Embed

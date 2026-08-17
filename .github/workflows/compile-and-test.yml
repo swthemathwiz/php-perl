@@ -46,7 +46,7 @@ jobs:
     
     steps:
     - name: 📥 Checkout Extension
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: 🐘 Install PHP and Perl Development
       env:
         PHP_VERSION: "${{ github.event.inputs.phpversion }}"

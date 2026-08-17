@@ -51,7 +51,7 @@ jobs:
 
     steps:
     - name: 📥 Checkout Extension
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: 🐘 Set up PHP
       id: setup-php
@@ -172,7 +172,7 @@ jobs:
 
     - name: 🐪 Checkout Perl
       if: steps.cache-perl.outputs.cache-hit != 'true'
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         repository: Perl/perl5
         ref: ${{ env.PERL_VERSION_TAG }}
