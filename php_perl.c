@@ -1657,6 +1657,29 @@ php_perl_unset_property( php_perl_zop object, php_perl_zmp member_val, void * *c
 } /* php_perl_unset_property */
 
 #if PHP_VERSION_GE(8,0,0)
+
+static zend_result
+php_perl_validate_simple_object( SV *sv, const char *desc )
+{
+  if( sv == NULL ) {
+    zend_error( E_ERROR, "[perl] Cannot access value for %s", desc );
+    return FAILURE;
+  }
+
+  if( SvTYPE(sv) >= SVt_PVAV || (isGV_with_GP(sv) && !SvFAKE(sv)) ) {
+    zend_error( E_ERROR, "[perl] Cannot use %s on non-scalar", desc );
+    return FAILURE;
+  }
+
+  /* Non-complex type */
+  if( !( SvTYPE(sv) == SVt_NULL || SvIOK(sv) || SvNOK(sv) || SvPOK(sv) ) ) {
+    zend_error( E_ERROR, "[perl] Cannot use %s on non-scalar/non-string", desc );
+    return FAILURE;
+  }
+
+  return SUCCESS;
+} /* php_perl_validate_simple_object */
+
 #if PHP_VERSION_GE(8,2,0)
 static zend_result
 #else
@@ -1666,37 +1689,148 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
 {
   TRACE_SUB( "php_perl_do_operation" );
 
-  TRACE_MSG2( "opcode = %d", (int)opcode );
-  /* Is it an increment (++) or decrement (--) ? */
-  if( (opcode == ZEND_ADD || opcode == ZEND_SUB) &&
-      result == op1 &&
-      Z_TYPE_P(op2) == IS_LONG && Z_LVAL_P(op2) == 1 ) {
-    php_perl_object *pobj = php_perl_from_zend( Z_OBJ_P( result ) );
+  static const char * const opcode_mapping[] = {
+    "",
+    "+=",  // ZEND_ADD
+    "-=",  // ZEND_SUB
+    "*=",  // ZEND_MUL
+    "/=",  // ZEND_DIV
+    "%=",  // ZEND_MOD
+    "<<=", // ZEND_SL
+    ">>=", // ZEND_SR
+    ".=",  // ZEND_CONCAT
+    "|=",  // ZEND_BW_OR
+    "&=",  // ZEND_BW_AND
+    "^=",  // ZEND_BW_XOR
+    "**=", // ZEND_POW
+    "~",   // ZEND_BW_NOT
+  };
+#define OPCODE_COUNT        (sizeof(opcode_mapping) / sizeof(opcode_mapping[0]))
+#define OPCODE_IS_VALID(X)  ((X) != 0 && (X) < OPCODE_COUNT)
+#define OPCODE_IMAGE(X)     (OPCODE_IS_VALID(X) ? opcode_mapping[(X)] : "unexpected")
+
+  TRACE_MSG3( "opcode = %u (%s)", (unsigned)opcode, OPCODE_IMAGE(opcode) );
+  if( !OPCODE_IS_VALID(opcode) ) {
+    zend_error( E_ERROR, "[perl] Unexpected operator (%u)", (unsigned)opcode );
+    return FAILURE;
+  }
+
+  zval *our_zval;
+  if( php_perl_is_our_zval( op1 ) ) {
+    our_zval = op1;
+  }
+  else if( php_perl_is_our_zval( op2 ) ) {
+    our_zval = op2;
+  }
+  else {
+    our_zval = NULL;
+    return FAILURE;
+  }
+
+  {
+    php_perl_object *pobj = php_perl_from_zend( Z_OBJ_P( our_zval ) );
     SV              *sv   = pobj->sv;
+    zval             op1_zval;
+    zval             op2_zval;
+    zval             result_zval;
+    zval            *op1_zval_ptr = op1;
+    zval            *op2_zval_ptr = op2;
+    zval            *result_zval_ptr = result;
 
     TRACE_PERL_OBJECT( "do operation", pobj );
 
-    if( sv == NULL ) {
-      zend_error( E_ERROR, "[perl] Cannot access value" );
-      return FAILURE;
-    }
-    else if( SvREADONLY(sv) ) {
-      zend_error( E_ERROR, "[perl] Cannot increment/decrement read-only value" );
-      return FAILURE;
-    }
-    else if( SvTYPE(sv) >= SVt_PVAV || (isGV_with_GP(sv) && !SvFAKE(sv)) ) {
-      zend_error( E_ERROR, "[perl] Cannot increment/decrement non-scalar" );
-      return FAILURE;
+    ZVAL_NULL( &op1_zval );
+    ZVAL_NULL( &op2_zval );
+    ZVAL_NULL( &result_zval );
+
+    if( php_perl_is_our_zval( result ) ) {
+      php_perl_object *pobj_result = php_perl_from_zend( Z_OBJ_P( result ) );
+
+      if( pobj_result->sv == NULL ) {
+        zend_error( E_ERROR, "[perl] Cannot access value for %s", OPCODE_IMAGE(opcode) );
+        return FAILURE;
+      }
+
+      if( SvREADONLY(pobj_result->sv) ) {
+        zend_error( E_ERROR, "[perl] Cannot use %s on read-only value", OPCODE_IMAGE(opcode) );
+        return FAILURE;
+      }
     }
 
-    if( opcode == ZEND_ADD )
-      sv_inc( sv );
-    else
-      sv_dec( sv );
-    return SUCCESS;
+    if( php_perl_is_our_zval( op1 ) ) {
+      php_perl_object *pobj_op1 = php_perl_from_zend( Z_OBJ_P( op1 ) );
+
+      if( php_perl_validate_simple_object( pobj_op1->sv, OPCODE_IMAGE(opcode) ) != SUCCESS )
+        return FAILURE;
+
+      if( !php_perl_sv_to_zval_noref( pobj_op1->sv, &op1_zval, NULL ) ) {
+        zend_error( E_ERROR, "[perl] Cannot get value" );
+        return FAILURE;
+      }
+      op1_zval_ptr = &op1_zval;
+    }
+
+    if( php_perl_is_our_zval( op2 ) ) {
+      php_perl_object *pobj_op2 = php_perl_from_zend( Z_OBJ_P( op2 ) );
+
+      if( php_perl_validate_simple_object( pobj_op2->sv, OPCODE_IMAGE(opcode) ) != SUCCESS ) {
+        zval_dtor( &op1_zval );
+        return FAILURE;
+      }
+
+      if( !php_perl_sv_to_zval_noref( pobj_op2->sv, &op2_zval, NULL ) ) {
+        zend_error( E_ERROR, "[perl] Cannot get value" );
+        zval_dtor( &op1_zval );
+        return FAILURE;
+      }
+      op2_zval_ptr = &op2_zval;
+    }
+
+    /* Use the zend builtin functions */
+    {
+      zend_result ret;
+
+      if( result == our_zval )
+        result_zval_ptr = &result_zval;
+
+      switch( opcode ) {
+        case ZEND_ADD:    ret = add_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_SUB:    ret = sub_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_MUL:    ret = mul_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_POW:    ret = pow_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_DIV:    ret = div_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_MOD:    ret = mod_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_BW_OR:  ret = bitwise_or_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_BW_AND: ret = bitwise_and_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_BW_XOR: ret = bitwise_xor_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_SL:     ret = shift_left_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_SR:     ret = shift_right_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        case ZEND_CONCAT: ret = concat_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
+        /* Unary bitwise not (~): the proxy is used as a value, so <result> is a
+           temporary.  Compute the value into <result> without writing back to the
+           SV. */
+        case ZEND_BW_NOT: ret = bitwise_not_function(result_zval_ptr, op1_zval_ptr); break;
+        default: ret = FAILURE;
+      }
+      zval_dtor( &op1_zval );
+      zval_dtor( &op2_zval );
+
+      if( ret == SUCCESS ) {
+        if( result == our_zval ) {
+          SV *result_sv = php_perl_zval_to_sv_noref( &result_zval, NULL );
+          SvSetSV ( sv, result_sv );
+          SvREFCNT_dec( result_sv );
+        }
+        zval_dtor( &result_zval );
+        return SUCCESS;
+      }
+    }
   }
 
   return FAILURE;
+#undef OPCODE_COUNT
+#undef OPCODE_IS_VALID
+#undef OPCODE_IMAGE
 } /* php_perl_do_operation */
 #endif
 
