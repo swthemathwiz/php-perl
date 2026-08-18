@@ -1774,13 +1774,13 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
       php_perl_object *pobj_op2 = php_perl_from_zend( Z_OBJ_P( op2 ) );
 
       if( php_perl_validate_simple_object( pobj_op2->sv, OPCODE_IMAGE(opcode) ) != SUCCESS ) {
-        zval_dtor( &op1_zval );
+        zval_ptr_dtor( &op1_zval );
         return FAILURE;
       }
 
       if( !php_perl_sv_to_zval_noref( pobj_op2->sv, &op2_zval, NULL ) ) {
         zend_error( E_ERROR, "[perl] Cannot get value" );
-        zval_dtor( &op1_zval );
+        zval_ptr_dtor( &op1_zval );
         return FAILURE;
       }
       op2_zval_ptr = &op2_zval;
@@ -1812,8 +1812,8 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
         case ZEND_BW_NOT: ret = bitwise_not_function(result_zval_ptr, op1_zval_ptr); break;
         default: ret = FAILURE;
       }
-      zval_dtor( &op1_zval );
-      zval_dtor( &op2_zval );
+      zval_ptr_dtor( &op1_zval );
+      zval_ptr_dtor( &op2_zval );
 
       if( ret == SUCCESS ) {
         if( result == our_zval ) {
@@ -1821,7 +1821,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
           SvSetSV ( sv, result_sv );
           SvREFCNT_dec( result_sv );
         }
-        zval_dtor( &result_zval );
+        zval_ptr_dtor( &result_zval );
         return SUCCESS;
       }
     }
