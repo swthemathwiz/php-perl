@@ -1410,6 +1410,10 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
         zend_error( E_WARNING, "[perl] Undefined variable: '$%s'", ZSTR_VAL( member ) );
       goto php_perl_read_property_cleanup;
     }
+    else if( write )
+      retval = php_perl_create_new_object( rv, sv, PERL_PROXY );
+    else
+      retval = php_perl_sv_to_zval( sv, rv );
   }
   /* Normal processing... interpret the variable */
   else {
@@ -1426,17 +1430,11 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
         else
           retval = php_perl_sv_to_zval( *prop_val, rv );
       }
-      goto php_perl_read_property_cleanup;
     }
     else {
       zend_error( E_WARNING, "[perl] Not a HASH reference" );
       goto php_perl_read_property_cleanup;
     }
-  }
-
-  if( sv != NULL ) {
-    TRACE_MSG( "rp4" );
-    retval = php_perl_sv_to_zval( sv, rv );
   }
 
 php_perl_read_property_cleanup:
