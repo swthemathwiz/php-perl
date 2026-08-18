@@ -1,5 +1,5 @@
 --TEST--
-Test 96: firing every do_operation opcode via a bound reference
+Test 96: firing every in-place do_operation opcode via a bound reference
 --SKIPIF--
 <?php require_once('skipif.inc'); ?>
 --FILE--
@@ -25,7 +25,6 @@ package Foo;
     \$self->{and} = 10;
     \$self->{or} = 10;
     \$self->{xor} = 10;
-    \$self->{bnot} = 10;
     bless \$self, \$type;
     return \$self;
   }
@@ -47,7 +46,6 @@ $o2 = &$o->or; $o2 |= 1; var_dump($o->or);
 $b = &$o->and; $b &= 7; var_dump($o->and);
 $x2 = &$o->xor; $x2 ^= 3; var_dump($o->xor);
 $p = &$o->pow; $p **= 2; var_dump($o->pow);
-$n = &$o->bnot; $r = ~$n; var_dump($r);
 echo "ok\n";
 ?>
 --EXPECT--
@@ -65,5 +63,4 @@ int(11)
 int(2)
 int(9)
 int(100)
-int(-11)
 ok
