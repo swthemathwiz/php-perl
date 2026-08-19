@@ -92,8 +92,8 @@ typedef struct DIR_W32 DIR;
 #define TRACE_MSG3( F, V1, V2 )
 #define TRACE_SV_DUMP( SV )
 #define TRACE_ZV_DUMP( N, ZV )
-#define TRACE_PERL_OBJECT( D, O )
-#define TRACE_ZEND_OBJECT( D, O )
+#define TRACE_PERL_OBJECT( D, O ) (void)((O))
+#define TRACE_ZEND_OBJECT( D, O ) (void)((O))
 #define TRACE_ZOP( D )
 #undef  TRACE_EXPOSE_START_STOP
 #endif /* ifdef PHP_PERL_TRACE */
@@ -1703,24 +1703,20 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
   TRACE_MSG3( "opcode = %u (%s)", (unsigned)opcode, OPCODE_IMAGE(opcode) );
   if( !OPCODE_IS_VALID(opcode) ) {
     zend_error( E_ERROR, "[perl] Unexpected operator (%u)", (unsigned)opcode );
-    return FAILURE;
+    goto do_operation_failed;
   }
 
-  /* our_zval is used for tracing, also it is the destination result if it needs copying */
+  /* our_zval is used for tracing (one or both operands must be Perl) */
   zval *our_zval;
-  /* Older versions of PHP leave result as uninitialized for unary ~, so don't touch */
-  if( opcode != ZEND_BW_NOT && php_perl_is_our_zval( result ) )
-    our_zval = result;
-  else if( php_perl_is_our_zval( op1 ) )
+  if( php_perl_is_our_zval( op1 ) )
     our_zval = op1;
   else if( php_perl_is_our_zval( op2 ) )
     our_zval = op2;
   else
-    return FAILURE;
+    goto do_operation_failed;
 
   {
     php_perl_object *pobj = php_perl_from_zend( Z_OBJ_P( our_zval ) );
-    SV              *sv   = pobj->sv;
     zval             op1_zval;
     zval             op2_zval;
     zval             result_zval;
@@ -1734,41 +1730,37 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
     ZVAL_NULL( &op2_zval );
     ZVAL_NULL( &result_zval );
 
-    if( opcode != ZEND_BW_NOT && php_perl_is_our_zval( result ) ) {
-      php_perl_object *pobj_result = php_perl_from_zend( Z_OBJ_P( result ) );
+    /* If in-place, copy to result */
+    result_zval_ptr = (op1 == result) ? &result_zval : result;
 
-      if( pobj_result->sv != NULL && SvREADONLY(pobj_result->sv) ) {
-        zend_throw_error( zend_ce_error, "[perl] Cannot use %s to modify a readonly value", OPCODE_IMAGE(opcode) );
-        return FAILURE;
-      }
-      result_zval_ptr = &result_zval;
-    }
-
+    /* Process op1, converting from PHP to Perl if necessary */
     if( php_perl_is_our_zval( op1 ) ) {
       php_perl_object *pobj_op1 = php_perl_from_zend( Z_OBJ_P( op1 ) );
 
-      if( php_perl_validate_simple_object( pobj_op1->sv, OPCODE_IMAGE(opcode) ) != SUCCESS )
-        return FAILURE;
+      if( php_perl_validate_simple_object( pobj_op1->sv, OPCODE_IMAGE(opcode) ) != SUCCESS ) {
+        goto do_operation_failed;
+      }
 
       if( !php_perl_sv_to_zval_noref( pobj_op1->sv, &op1_zval, NULL ) ) {
         zend_error( E_ERROR, "[perl] Cannot get value" );
-        return FAILURE;
+        goto do_operation_failed;
       }
       op1_zval_ptr = &op1_zval;
     }
 
+    /* Process op2, converting from PHP to Perl if necessary */
     if( php_perl_is_our_zval( op2 ) ) {
       php_perl_object *pobj_op2 = php_perl_from_zend( Z_OBJ_P( op2 ) );
 
       if( php_perl_validate_simple_object( pobj_op2->sv, OPCODE_IMAGE(opcode) ) != SUCCESS ) {
         zval_ptr_dtor( &op1_zval );
-        return FAILURE;
+        goto do_operation_failed;
       }
 
       if( !php_perl_sv_to_zval_noref( pobj_op2->sv, &op2_zval, NULL ) ) {
         zend_error( E_ERROR, "[perl] Cannot get value" );
         zval_ptr_dtor( &op1_zval );
-        return FAILURE;
+        goto do_operation_failed;
       }
       op2_zval_ptr = &op2_zval;
     }
@@ -1796,21 +1788,42 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
         case ZEND_BW_NOT: ret = bitwise_not_function(result_zval_ptr, op1_zval_ptr); break;
         default: ret = FAILURE;
       }
+      /* Free any Perl-derived zval arguments */
       zval_ptr_dtor( &op1_zval );
       zval_ptr_dtor( &op2_zval );
 
       if( ret == SUCCESS ) {
-        if( php_perl_is_our_zval( result ) ) {
-          SV *result_sv = php_perl_zval_to_sv_noref( &result_zval, NULL );
-          SvSetSV( sv, result_sv );
-          SvREFCNT_dec( result_sv );
+        /* First case is to assign a Perl variable from the result */
+        if( op1 == result && php_perl_is_our_zval( result ) ) {
+          php_perl_object *pobj_result = php_perl_from_zend( Z_OBJ_P( result ) );
+
+          /* Check that the object is writable */
+          if( pobj_result->sv != NULL && SvREADONLY(pobj_result->sv) ) {
+            zend_throw_error( zend_ce_error, "[perl] Cannot use %s to modify a readonly value", OPCODE_IMAGE(opcode) );
+            zval_ptr_dtor( &result_zval );
+            goto do_operation_failed;
+          }
+
+          /* In-place assignment */
+          SV *result_sv = php_perl_zval_to_sv_noref( result_zval_ptr, NULL );
+          SvSetSV( pobj_result->sv, result_sv );
+
           zval_ptr_dtor( &result_zval );
+        }
+        /* Assign the result if its not in-place already */
+        else if( result != NULL && result_zval_ptr != result ) {
+          ZVAL_COPY_VALUE(result, result_zval_ptr);
         }
         return SUCCESS;
       }
     }
   }
 
+do_operation_failed:
+  /* Always return undef and the failure */
+  if (op1 != result) {
+    ZVAL_UNDEF(result);
+  }
   return FAILURE;
 #undef OPCODE_COUNT
 #undef OPCODE_IS_VALID
