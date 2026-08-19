@@ -32,6 +32,7 @@ PERL_END
 $o = new Perl('Foo');
 
 /* Proxy on the left of the operator */
+echo "Proxy on the left of the operator\n";
 $a = &$o->add;  $z = $a + 5;   var_dump($z);
 $s = &$o->sub;  $z = $s - 4;   var_dump($z);
 $m = &$o->mul;  $z = $m * 3;   var_dump($z);
@@ -46,6 +47,7 @@ $x2 = &$o->xor; $z = $x2 ^ 3;  var_dump($z);
 $p = &$o->pow;  $z = $p ** 2;  var_dump($z);
 
 /* Proxy on the right of the operator */
+echo "Proxy on the right of the operator\n";
 $z = 5 + $a;    var_dump($z);
 $z = 14 - $s;   var_dump($z);
 $z = 2 * $m;    var_dump($z);
@@ -60,6 +62,7 @@ $z = 9 ^ $x2;   var_dump($z);
 $z = 2 ** $p;   var_dump($z);
 
 /* Compound assignment, plain left hand side, proxy on the right */
+echo "Compound assignment\n";
 $z = 5;    $z += $a;  var_dump($z);
 $z = 14;   $z -= $s;  var_dump($z);
 $z = 2;    $z *= $m;  var_dump($z);
@@ -74,13 +77,16 @@ $z = 9;    $z ^= $x2; var_dump($z);
 $z = 2;    $z **= $p; var_dump($z);
 
 /* Unary minus */
+echo "Unary minus\n";
 $z = -$a; var_dump($z);
 
 /* Value-context is read-only: the Perl variables must be unchanged */
+echo "Original values (unchanged)\n";
 var_dump($o->add, $o->sub, $o->mul, $o->div, $o->mod, $o->pow);
 var_dump($o->cat, $o->sl, $o->sr, $o->and, $o->or, $o->xor);
 ?>
 --EXPECT--
+Proxy on the left of the operator
 int(15)
 int(6)
 int(30)
@@ -93,6 +99,7 @@ int(11)
 int(2)
 int(9)
 int(100)
+Proxy on the right of the operator
 int(15)
 int(4)
 int(20)
@@ -105,6 +112,7 @@ int(14)
 int(10)
 int(3)
 int(1024)
+Compound assignment
 int(15)
 int(4)
 int(20)
@@ -117,7 +125,9 @@ int(14)
 int(10)
 int(3)
 int(1024)
+Unary minus
 int(-10)
+Original values (unchanged)
 int(10)
 int(10)
 int(10)
