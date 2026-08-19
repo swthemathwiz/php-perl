@@ -50,8 +50,7 @@ jobs:
 
     - name: 🐪 Install Perl Development
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libperl-dev
+        sudo apt-get update -qq && sudo apt-get install -y -qq libperl-dev
 
     - name: ℹ️ Establish OS, PHP and Perl Versions
       run: |
