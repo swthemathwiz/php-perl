@@ -785,7 +785,7 @@ php_perl_sv_to_zval_noref( SV *sv,
   if( sv ) {
     TRACE_SV_DUMP( sv );
 
-    if( SvTYPE( sv ) == SVt_NULL ) { /* null */
+    if( SvTYPE( sv ) == SVt_NULL ) {      /* null */
       ZVAL_NULL( zv );
       TRACE_MSG( "zval null" );
     }
@@ -1410,12 +1410,8 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
         zend_error( E_WARNING, "[perl] Undefined variable: '$%s'", ZSTR_VAL( member ) );
       goto php_perl_read_property_cleanup;
     }
-    else if( write )
-      retval = php_perl_create_new_object( rv, sv, PERL_PROXY );
-    else
-      retval = php_perl_sv_to_zval( sv, rv );
   }
-  /* Normal processing... interpret the variable */
+  /* Normal processing... Interpret the variable */
   else {
     TRACE_MSG( "rp3" );
     sv = php_perl_deref( pobj->sv );
@@ -1424,17 +1420,19 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
       SV * *prop_val;
 
       prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), write );
-      if( prop_val != NULL ) {
-        if( write && !sv_isobject( *prop_val ) )
-          retval = php_perl_create_new_object( rv, *prop_val, PERL_PROXY );
-        else
-          retval = php_perl_sv_to_zval( *prop_val, rv );
-      }
+      sv = (prop_val == NULL) ? NULL : *prop_val;
     }
     else {
       zend_error( E_WARNING, "[perl] Not a HASH reference" );
       goto php_perl_read_property_cleanup;
     }
+  }
+
+  if( sv != NULL ) {
+    if( write && !sv_isobject( sv ) )
+      retval = php_perl_create_new_object( rv, sv, PERL_PROXY );
+    else
+      retval = php_perl_sv_to_zval( sv, rv );
   }
 
 php_perl_read_property_cleanup:
@@ -1664,12 +1662,7 @@ php_perl_validate_simple_object( SV *sv, const char *desc )
     return FAILURE;
   }
 
-  if( SvTYPE(sv) >= SVt_PVAV || (isGV_with_GP(sv) && !SvFAKE(sv)) ) {
-    zend_error( E_ERROR, "[perl] Cannot use %s on non-scalar", desc );
-    return FAILURE;
-  }
-
-  /* Non-complex type */
+  /* Must be non-complex type available in PHP */
   if( !( SvTYPE(sv) == SVt_NULL || SvIOK(sv) || SvNOK(sv) || SvPOK(sv) ) ) {
     zend_error( E_ERROR, "[perl] Cannot use %s on non-scalar/non-string", desc );
     return FAILURE;
@@ -1713,17 +1706,16 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
     return FAILURE;
   }
 
+  /* our_zval is used for tracing, also it is the destination result if it needs copying */
   zval *our_zval;
-  if( php_perl_is_our_zval( op1 ) ) {
+  if( php_perl_is_our_zval( result ) )
+    our_zval = result;
+  else if( php_perl_is_our_zval( op1 ) )
     our_zval = op1;
-  }
-  else if( php_perl_is_our_zval( op2 ) ) {
+  else if( php_perl_is_our_zval( op2 ) )
     our_zval = op2;
-  }
-  else {
-    our_zval = NULL;
+  else
     return FAILURE;
-  }
 
   {
     php_perl_object *pobj = php_perl_from_zend( Z_OBJ_P( our_zval ) );
@@ -1744,15 +1736,11 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
     if( php_perl_is_our_zval( result ) ) {
       php_perl_object *pobj_result = php_perl_from_zend( Z_OBJ_P( result ) );
 
-      if( pobj_result->sv == NULL ) {
-        zend_error( E_ERROR, "[perl] Cannot access value for %s", OPCODE_IMAGE(opcode) );
-        return FAILURE;
-      }
-
-      if( SvREADONLY(pobj_result->sv) ) {
+      if( pobj_result->sv != NULL && SvREADONLY(pobj_result->sv) ) {
         zend_error( E_ERROR, "[perl] Cannot use %s on read-only value", OPCODE_IMAGE(opcode) );
         return FAILURE;
       }
+      result_zval_ptr = &result_zval;
     }
 
     if( php_perl_is_our_zval( op1 ) ) {
@@ -1788,9 +1776,6 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
     {
       zend_result ret;
 
-      if( result == our_zval )
-        result_zval_ptr = &result_zval;
-
       switch( opcode ) {
         case ZEND_ADD:    ret = add_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
         case ZEND_SUB:    ret = sub_function(result_zval_ptr, op1_zval_ptr, op2_zval_ptr); break;
@@ -1814,12 +1799,12 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
       zval_ptr_dtor( &op2_zval );
 
       if( ret == SUCCESS ) {
-        if( result == our_zval ) {
+        if( php_perl_is_our_zval( result ) ) {
           SV *result_sv = php_perl_zval_to_sv_noref( &result_zval, NULL );
-          SvSetSV ( sv, result_sv );
+          SvSetSV( sv, result_sv );
           SvREFCNT_dec( result_sv );
+          zval_ptr_dtor( &result_zval );
         }
-        zval_ptr_dtor( &result_zval );
         return SUCCESS;
       }
     }
