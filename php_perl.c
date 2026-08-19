@@ -1803,8 +1803,8 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
           SV *result_sv = php_perl_zval_to_sv_noref( &result_zval, NULL );
           SvSetSV( sv, result_sv );
           SvREFCNT_dec( result_sv );
-          zval_ptr_dtor( &result_zval );
         }
+        zval_ptr_dtor( &result_zval );
         return SUCCESS;
       }
     }
