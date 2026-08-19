@@ -1,4 +1,11 @@
-# Makefile.frag fragment to create a source tarball
+# Makefile.frag fragment for extra targets
+
+.PHONY: clean-artifacts dist memory-test
+
+# make dist:
+#
+# Make a distribution tarball (that conforms to pie standards)
+#
 
 # File naming conventions for pie 
 #
@@ -20,10 +27,20 @@ dist:
 	git archive --format=tar.gz --prefix=$(ext_archive_prefix)/ HEAD > $(tarball)
 	@echo "Tarball created: $(tarball)"
 
-# Remove generated build/test artifacts on clean
-clean: clean-artifacts
+# make memory-test:
+#
+# Run make test with valgrind memory checker
+#
 
-.PHONY: clean-artifacts
+memory-test:
+	TEST_PHP_ARGS='-m -q' $(MAKE) test TESTS="$(TESTS)"
+
+# make clean-artifacts:
+#
+# Remove additional generated build/test artifacts on clean
+#
+
+clean: clean-artifacts
 
 clean-artifacts:
 	rm -f config*~ tmp-php.ini php_test_results_*.txt
