@@ -1664,7 +1664,7 @@ php_perl_validate_simple_object( SV *sv, const char *desc )
 
   /* Must be non-complex type available in PHP */
   if( !( SvTYPE(sv) == SVt_NULL || SvIOK(sv) || SvNOK(sv) || SvPOK(sv) ) ) {
-    zend_error( E_ERROR, "[perl] Cannot use %s on non-scalar/non-string", desc );
+    zend_type_error( "[perl] Cannot use %s on non-scalar/non-string", desc );
     return FAILURE;
   }
 
@@ -1737,7 +1737,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
       php_perl_object *pobj_result = php_perl_from_zend( Z_OBJ_P( result ) );
 
       if( pobj_result->sv != NULL && SvREADONLY(pobj_result->sv) ) {
-        zend_error( E_ERROR, "[perl] Cannot use %s on read-only value", OPCODE_IMAGE(opcode) );
+        zend_throw_error( zend_ce_error, "[perl] Cannot use %s to modify a readonly value", OPCODE_IMAGE(opcode) );
         return FAILURE;
       }
       result_zval_ptr = &result_zval;
