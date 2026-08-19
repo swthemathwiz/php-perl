@@ -46,6 +46,7 @@ $o2 = &$o->or; $o2 |= 1; var_dump($o->or);
 $b = &$o->and; $b &= 7; var_dump($o->and);
 $x2 = &$o->xor; $x2 ^= 3; var_dump($o->xor);
 $p = &$o->pow; $p **= 2; var_dump($o->pow);
+$u = &$o->undef; $u += 5; var_dump($o->undef);
 echo "ok\n";
 ?>
 --EXPECT--
@@ -63,4 +64,5 @@ int(11)
 int(2)
 int(9)
 int(100)
+int(5)
 ok
