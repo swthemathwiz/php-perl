@@ -1756,7 +1756,8 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
       op1_zval_ptr = &op1_zval;
     }
 
-    if( php_perl_is_our_zval( op2 ) ) {
+    /* Older versions of PHP leave op2 as uninitialized for unary ~, so don't touch */
+    if( opcode != ZEND_BW_NOT && php_perl_is_our_zval( op2 ) ) {
       php_perl_object *pobj_op2 = php_perl_from_zend( Z_OBJ_P( op2 ) );
 
       if( php_perl_validate_simple_object( pobj_op2->sv, OPCODE_IMAGE(opcode) ) != SUCCESS ) {
@@ -1803,8 +1804,8 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
           SV *result_sv = php_perl_zval_to_sv_noref( &result_zval, NULL );
           SvSetSV( sv, result_sv );
           SvREFCNT_dec( result_sv );
+          zval_ptr_dtor( &result_zval );
         }
-        zval_ptr_dtor( &result_zval );
         return SUCCESS;
       }
     }
