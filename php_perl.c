@@ -1708,7 +1708,8 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
 
   /* our_zval is used for tracing, also it is the destination result if it needs copying */
   zval *our_zval;
-  if( php_perl_is_our_zval( result ) )
+  /* Older versions of PHP leave result as uninitialized for unary ~, so don't touch */
+  if( opcode != ZEND_BW_NOT && php_perl_is_our_zval( result ) )
     our_zval = result;
   else if( php_perl_is_our_zval( op1 ) )
     our_zval = op1;
@@ -1733,7 +1734,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
     ZVAL_NULL( &op2_zval );
     ZVAL_NULL( &result_zval );
 
-    if( php_perl_is_our_zval( result ) ) {
+    if( opcode != ZEND_BW_NOT && php_perl_is_our_zval( result ) ) {
       php_perl_object *pobj_result = php_perl_from_zend( Z_OBJ_P( result ) );
 
       if( pobj_result->sv != NULL && SvREADONLY(pobj_result->sv) ) {
@@ -1756,8 +1757,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
       op1_zval_ptr = &op1_zval;
     }
 
-    /* Older versions of PHP leave op2 as uninitialized for unary ~, so don't touch */
-    if( opcode != ZEND_BW_NOT && php_perl_is_our_zval( op2 ) ) {
+    if( php_perl_is_our_zval( op2 ) ) {
       php_perl_object *pobj_op2 = php_perl_from_zend( Z_OBJ_P( op2 ) );
 
       if( php_perl_validate_simple_object( pobj_op2->sv, OPCODE_IMAGE(opcode) ) != SUCCESS ) {
