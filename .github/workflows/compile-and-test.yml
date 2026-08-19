@@ -96,7 +96,7 @@ jobs:
       env:
         PHP_BIN: "/usr/bin/php${{ env.PHP_VERSION_SUFFIX }}"
       run: |
-        sudo apt-get install -qq valgrind
+        sudo apt-get install -y -qq valgrind
         valgrind --version
         # Patch PHP executable name
         cat php_perl.supp | perl -p -e "s#obj:/usr/bin/php#obj:$PHP_BIN#" > php_perl_fixexe.supp
