@@ -90,9 +90,9 @@ jobs:
       run: |
         sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
         valgrind --version
-        # Patch PHP executable name
-        PHP_BIN="$(command -v php)"
-        cat php_perl.supp | perl -p -e "s#obj:/usr/bin/php#obj:$PHP_BIN#" > php_perl_fixexe.supp
+        # Resolve real PHP binary path and patch suppressions
+        PHP_BIN="$(readlink -f "$(command -v php)")"
+        sed "s|obj:/usr/bin/php|obj:$PHP_BIN|g" php_perl.supp > php_perl_fixexe.supp
         echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
 
     - name: 🔍 Test Extension for Memory Leaks

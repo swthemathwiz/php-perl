@@ -102,13 +102,12 @@ jobs:
 
     - name: 🛠️ Setup valgrind and suppressions
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
-      env:
-        PHP_BIN: "/usr/bin/php${{ env.PHP_VERSION_SUFFIX }}"
       run: |
         sudo apt-get install -y -qq valgrind
         valgrind --version
-        # Patch PHP executable name
-        cat php_perl.supp | perl -p -e "s#obj:/usr/bin/php#obj:$PHP_BIN#" > php_perl_fixexe.supp
+        # Resolve real PHP binary path and patch suppressions
+        PHP_BIN="$(readlink -f "$(command -v php)")"
+        sed "s|obj:/usr/bin/php|obj:$PHP_BIN|g" php_perl.supp > php_perl_fixexe.supp
         echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
 
     - name: 🔍 Test Extension for Memory Leaks
