@@ -24,6 +24,11 @@ on:
           - ubuntu-26.04-arm
           - ubuntu-24.04-arm
           - ubuntu-22.04-arm
+      runvalgrind:
+        description: 'Run Tests with Memory Check'
+        type: boolean
+        default: false
+        required: true
 
 permissions:
   contents: read
@@ -75,27 +80,41 @@ jobs:
       run: echo "::error::PHP ${{ matrix.php-version }} failed compilation"
 
     - name: 🧪 Test Extension for Functionality
-      id: test
+      id: test_func
       env:
         TEST_PHP_ARGS: '-q'
       run: make test
 
-    - name: 📄 Show Test Outputs on Failure
-      if: ${{ failure() && steps.test.outcome == 'failure' }}
+    - name: 🛠️ Setup valgrind
+      if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
-        echo "::error::PHP ${{ matrix.php-version }} failed tests"
-        for f in tests/*.out; do
-          [ -e "$f" ] || continue
-          if grep -q -- '--XFAIL--' "${f%.out}.phpt" 2>/dev/null; then
-            continue
-          fi
-          echo "===== $f ====="
-          cat "$f"
-          echo
-        done
+        sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
+        valgrind --version
+
+    - name: 🔍 Test Extension for Memory Leaks
+      id: test_valgrind
+      if: ${{ github.event.inputs.runvalgrind == 'true' }}
+      env:
+        TEST_PHP_ARGS: '-m -q'
+      run: make test
+
+    - name: 📤 Upload Test Failure Artifacts
+      if: ${{ failure() && (steps.test_func.outcome == 'failure' || steps.test_valgrind.outcome == 'failure') }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-failures-${{ inputs.os || github.event.inputs.os }}-php${{ matrix.php-version }}
+        path: |
+          tests/*.diff
+          tests/*.out
+          tests/*.log
+          tests/*.exp
+          tests/*.sh
+          tests/*.php
+          tests/*.mem
+        if-no-files-found: ignore
 
     - name: ❗ Report Generic Failure
-      if: ${{ failure() && steps.configure.outcome != 'failure' && steps.build.outcome != 'failure' && steps.test.outcome != 'failure' }}
+      if: ${{ failure() && steps.configure.outcome != 'failure' && steps.build.outcome != 'failure' && steps.test_func.outcome != 'failure' && steps.test_valgrind.outcome != 'failure' }}
       run: echo "::error::PHP ${{ matrix.php-version }} failed"
 
     - name: 🎉 Report Success
