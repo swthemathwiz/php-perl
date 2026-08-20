@@ -11,6 +11,8 @@
 #
 
 # PHP's weird string comparison optimization
+#   This is present on PHP 7.4 and PHP 8.0, but
+#   not PHP >= 8.1
 {
    php_perl_weird_string_comparison
    Memcheck:Cond
