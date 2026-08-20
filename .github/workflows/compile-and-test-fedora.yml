@@ -40,7 +40,7 @@ jobs:
 
     - name: 🐘 Install PHP and Perl Development
       run: |
-        dnf install -y php-cli php-devel perl-devel make gcc perl-ExtUtils-Embed
+        dnf install -y -q php-cli php-devel perl-devel make gcc perl-ExtUtils-Embed
 
     - name: ℹ️ Establish OS, PHP and Perl Versions
       run: |
@@ -72,10 +72,13 @@ jobs:
     - name: 🛠️ Setup valgrind and suppressions
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
-        dnf install -y valgrind
+        dnf install -y -q valgrind
         valgrind --version
-        cat php_perl.supp > php_perl_fixexe.supp
-        echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
+        # Suppressions are only needed on PHP < 8.1
+        if php -r "exit(version_compare(PHP_VERSION, '8.1.0', '<') ? 0 : 1);"; then
+          cat php_perl.supp > php_perl_fixexe.supp
+          echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
+        fi
 
     - name: 🔍 Test Extension for Memory Leaks
       id: test_valgrind
