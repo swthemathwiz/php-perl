@@ -25,6 +25,8 @@ package Foo;
     \$self->{and} = 10;
     \$self->{or} = 10;
     \$self->{xor} = 10;
+    \$self->{yes} = (1 == 1);
+    \$self->{no} = (1 == 0);
     bless \$self, \$type;
     return \$self;
   }
@@ -47,6 +49,8 @@ $b = &$o->and; $b &= 7; var_dump($o->and);
 $x2 = &$o->xor; $x2 ^= 3; var_dump($o->xor);
 $p = &$o->pow; $p **= 2; var_dump($o->pow);
 $u = &$o->undef; $u += 5; var_dump($o->undef);
+$y = &$o->yes; $y += 2; var_dump($o->yes);
+$n = &$o->no; $n .= "!"; var_dump($o->no);
 echo "ok\n";
 ?>
 --EXPECT--
@@ -65,4 +69,6 @@ int(2)
 int(9)
 int(100)
 int(5)
+int(3)
+string(2) "0!"
 ok
