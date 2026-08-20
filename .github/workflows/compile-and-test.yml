@@ -58,7 +58,7 @@ jobs:
         else
           PHP_SUFFIX="$PHP_VERSION"
         fi
-        if ! sudo apt-get install -y -qq "php$PHP_SUFFIX" "php$PHP_SUFFIX-dev" libperl-dev; then
+        if ! sudo apt-get install -y -qq --no-install-recommends "php$PHP_SUFFIX" "php$PHP_SUFFIX-dev" libperl-dev; then
           echo "::error::Failed to install PHP $PHP_VERSION"
           exit 1
         fi
@@ -103,7 +103,7 @@ jobs:
     - name: 🛠️ Setup valgrind and suppressions
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
-        sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
+        sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends valgrind
         valgrind --version
         # Suppressions are only needed on PHP < 8.1
         if php -r "exit(version_compare(PHP_VERSION, '8.1.0', '<') ? 0 : 1);"; then
