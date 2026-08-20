@@ -1723,6 +1723,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
     zval            *op1_zval_ptr = op1;
     zval            *op2_zval_ptr = op2;
     zval            *result_zval_ptr = result;
+    zend_bool        in_place = (result == op1) || (result == op2);
 
     TRACE_PERL_OBJECT( "do operation", pobj );
 
@@ -1731,7 +1732,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
     ZVAL_NULL( &result_zval );
 
     /* If in-place, copy to result */
-    result_zval_ptr = (op1 == result) ? &result_zval : result;
+    result_zval_ptr = in_place ? &result_zval : result;
 
     /* Process op1, converting from PHP to Perl if necessary */
     if( php_perl_is_our_zval( op1 ) ) {
@@ -1793,8 +1794,8 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
       zval_ptr_dtor( &op2_zval );
 
       if( ret == SUCCESS ) {
-        /* First case is to assign a Perl variable from the result */
-        if( op1 == result && php_perl_is_our_zval( result ) ) {
+        /* If in-place, and Perl target result, just transfer Perl-level SV */
+        if( in_place && php_perl_is_our_zval( result ) ) {
           php_perl_object *pobj_result = php_perl_from_zend( Z_OBJ_P( result ) );
 
           /* Check that the object is writable */
@@ -1810,9 +1811,9 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
 
           zval_ptr_dtor( &result_zval );
         }
-        /* Assign the result if its not in-place already */
-        else if( result != NULL && result_zval_ptr != result ) {
-          ZVAL_COPY_VALUE(result, result_zval_ptr);
+        /* If its in-place, copy result */
+        else if( in_place ) {
+          ZVAL_COPY_VALUE( result, &result_zval );
         }
         return SUCCESS;
       }
