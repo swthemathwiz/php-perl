@@ -1,4 +1,4 @@
-name: Compile and Test
+name: Compile and Test (Ubuntu)
 
 run-name: "${{ github.event.inputs.os }} | PHP ${{ github.event.inputs.phpversion }}"
 
