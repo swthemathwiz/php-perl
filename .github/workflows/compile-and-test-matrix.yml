@@ -85,12 +85,13 @@ jobs:
         TEST_PHP_ARGS: '-q'
       run: make test
 
-    - name: 🛠️ Setup valgrind
+    - name: 🛠️ Setup valgrind and suppressions
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       run: |
         sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
         valgrind --version
         # Patch PHP executable name
+        PHP_BIN="$(command -v php)"
         cat php_perl.supp | perl -p -e "s#obj:/usr/bin/php#obj:$PHP_BIN#" > php_perl_fixexe.supp
         echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
 
