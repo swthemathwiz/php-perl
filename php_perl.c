@@ -1798,13 +1798,6 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
         if( in_place && php_perl_is_our_zval( result ) ) {
           php_perl_object *pobj_result = php_perl_from_zend( Z_OBJ_P( result ) );
 
-          /* Check that the object is writable */
-          if( pobj_result->sv != NULL && SvREADONLY(pobj_result->sv) ) {
-            zend_throw_error( zend_ce_error, "[perl] Cannot use %s to modify a readonly value", OPCODE_IMAGE(opcode) );
-            zval_ptr_dtor( &result_zval );
-            goto do_operation_failed;
-          }
-
           /* In-place assignment */
           SV *result_sv = php_perl_zval_to_sv_noref( result_zval_ptr, NULL );
           if( pobj_result->sv != result_sv ) {
