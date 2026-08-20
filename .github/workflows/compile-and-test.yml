@@ -47,6 +47,7 @@ jobs:
     steps:
     - name: 📥 Checkout Extension
       uses: actions/checkout@v7
+
     - name: 🐘 Install PHP and Perl Development
       env:
         PHP_VERSION: "${{ github.event.inputs.phpversion }}"
@@ -70,12 +71,14 @@ jobs:
           sudo update-alternatives --set phpdbg "/usr/bin/phpdbg$PHP_VERSION"
         fi
         echo "PHP_VERSION_SUFFIX=$PHP_SUFFIX" >> "$GITHUB_ENV"
+
     - name: ℹ️ Establish OS, PHP and Perl Versions
       run: |
         grep PRETTY_NAME /etc/os-release
         php -v
         phpize --version
         perl -v | head -n 2
+
     - name: ⚙️ Configure PHP Perl Extension
       env:
         PHP_PREFIX: "/usr"
@@ -83,8 +86,10 @@ jobs:
       run: |
         $PHP_PREFIX/bin/phpize
         ./configure --with-perl=$PERL_PREFIX --with-php-config=$PHP_PREFIX/bin/php-config
+
     - name: 🏗️ Build Extension
       run: make
+
     - name: 🧪 Test Extension for Functionality
       id: test_func
       if: ${{ github.event.inputs.runtests == 'true' }}
@@ -92,6 +97,7 @@ jobs:
         TEST_PHP_ARGS: '-q'
       run: |
         make test
+
     - name: 🛠️ Setup valgrind and suppressions
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       env:
@@ -102,13 +108,14 @@ jobs:
         # Patch PHP executable name
         cat php_perl.supp | perl -p -e "s#obj:/usr/bin/php#obj:$PHP_BIN#" > php_perl_fixexe.supp
         echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
+
     - name: 🔍 Test Extension for Memory Leaks
       id: test_valgrind
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       env:
         TEST_PHP_ARGS: '-m -q'
-      run: |
-        make test
+      run: make test
+
     - name: 📤 Upload Test Failure Artifacts
       if: ${{ failure() && (steps.test_func.outcome == 'failure' || steps.test_valgrind.outcome == 'failure') }}
       uses: actions/upload-artifact@v7
