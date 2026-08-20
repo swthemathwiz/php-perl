@@ -44,6 +44,8 @@ jobs:
 
     - name: ℹ️ Establish OS, PHP and Perl Versions
       run: |
+        . /etc/os-release
+        echo "RESOLVED_OS=${ID}-${VERSION_ID}" >> "$GITHUB_ENV"
         grep PRETTY_NAME /etc/os-release
         php -v
         phpize --version
@@ -61,6 +63,7 @@ jobs:
       run: make
 
     - name: 🧪 Test Extension for Functionality
+      id: test_func
       if: ${{ github.event.inputs.runtests == 'true' }}
       env:
         TEST_PHP_ARGS: '-q'
@@ -75,7 +78,23 @@ jobs:
         echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
 
     - name: 🔍 Test Extension for Memory Leaks
+      id: test_valgrind
       if: ${{ github.event.inputs.runvalgrind == 'true' }}
       env:
         TEST_PHP_ARGS: '-m -q'
       run: make test
+
+    - name: 📤 Upload Test Failure Artifacts
+      if: ${{ failure() && (steps.test_func.outcome == 'failure' || steps.test_valgrind.outcome == 'failure') }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-failures-${{ env.RESOLVED_OS }}-php-distro
+        path: |
+          tests/*.diff
+          tests/*.out
+          tests/*.log
+          tests/*.exp
+          tests/*.sh
+          tests/*.php
+          tests/*.mem
+        if-no-files-found: ignore

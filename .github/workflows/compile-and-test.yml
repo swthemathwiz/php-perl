@@ -74,6 +74,8 @@ jobs:
 
     - name: ℹ️ Establish OS, PHP and Perl Versions
       run: |
+        . /etc/os-release
+        echo "RESOLVED_OS=${ID}-${VERSION_ID}" >> "$GITHUB_ENV"
         grep PRETTY_NAME /etc/os-release
         php -v
         phpize --version
@@ -120,7 +122,7 @@ jobs:
       if: ${{ failure() && (steps.test_func.outcome == 'failure' || steps.test_valgrind.outcome == 'failure') }}
       uses: actions/upload-artifact@v7
       with:
-        name: test-failures-${{ github.event.inputs.os }}-php${{ github.event.inputs.phpversion }}
+        name: test-failures-${{ env.RESOLVED_OS }}-php${{ github.event.inputs.phpversion }}
         path: |
           tests/*.diff
           tests/*.out
