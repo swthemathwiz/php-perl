@@ -1807,7 +1807,10 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
 
           /* In-place assignment */
           SV *result_sv = php_perl_zval_to_sv_noref( result_zval_ptr, NULL );
-          SvSetSV( pobj_result->sv, result_sv );
+          if( pobj_result->sv != result_sv ) {
+            SvSetSV( pobj_result->sv, result_sv );
+            SvREFCNT_dec( result_sv );
+          }
 
           zval_ptr_dtor( &result_zval );
         }
