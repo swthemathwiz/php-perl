@@ -1399,7 +1399,7 @@ php_perl_mirror_update_zval( php_perl_object *pobj, zend_string *member, zval *v
 } /* php_perl_mirror_update_zval */
 
 /* Copy dereferenced mirror zval to rv. */
-static zval *
+static inline zval *
 php_perl_mirror_read_zval( php_perl_object *pobj, zval *rv )
 {
   ZVAL_COPY_DEREF( rv, &pobj->mirror );
@@ -1407,7 +1407,7 @@ php_perl_mirror_read_zval( php_perl_object *pobj, zval *rv )
 } /* php_perl_mirror_read_zval */
 
 /* Return the mirror zval. */
-static zval *
+static inline zval *
 php_perl_mirror_get_zval( php_perl_object *pobj )
 {
   return &pobj->mirror;
@@ -1890,9 +1890,9 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
 
     TRACE_PERL_OBJECT( "do operation", pobj );
 
-    ZVAL_NULL( &op1_zval );
-    ZVAL_NULL( &op2_zval );
-    ZVAL_NULL( &result_zval );
+    ZVAL_UNDEF( &op1_zval );
+    ZVAL_UNDEF( &op2_zval );
+    ZVAL_UNDEF( &result_zval );
 
     /* If in-place, copy to result */
     result_zval_ptr = in_place ? &result_zval : result;
