@@ -96,9 +96,6 @@ jobs:
           PHP_BIN="$(readlink -f "$(command -v php)")"
           sed "s|obj:/usr/bin/php|obj:$PHP_BIN|g" php_perl.supp > php_perl_fixexe.supp
           echo "VALGRIND_OPTS=--suppressions=$PWD/php_perl_fixexe.supp" >> "$GITHUB_ENV"
-          echo "SUPPRESSION FILE>>>"
-          cat php_perl_fixexe.supp
-          echo "<<<SUPPRESSION FILE"
         fi
 
     - name: 🔍 Test Extension for Memory Leaks
@@ -121,6 +118,7 @@ jobs:
           tests/*.sh
           tests/*.php
           tests/*.mem
+          php_perl_fixexe.supp
         if-no-files-found: ignore
 
     - name: ❗ Report Generic Failure

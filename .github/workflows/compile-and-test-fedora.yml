@@ -100,4 +100,5 @@ jobs:
           tests/*.sh
           tests/*.php
           tests/*.mem
+          php_perl_fixexe.supp
         if-no-files-found: ignore
