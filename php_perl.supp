@@ -18,6 +18,7 @@
    Memcheck:Cond
    fun:zend_string_equal_val
    obj:/usr/bin/php
+   ...
 }
 
 # PHP's phpinfo(INFO_MODULES) and scandir interaction
