@@ -36,3 +36,4 @@ perl.la
 php_perl.dep
 php_perl.lo
 php_perl-*-src.tgz
+*.bak

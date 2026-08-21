@@ -43,4 +43,4 @@ memory-test:
 clean: clean-artifacts
 
 clean-artifacts:
-	rm -f config*~ tmp-php.ini php_test_results_*.txt
+	rm -f config*~ tmp-php.ini php_test_results_*.txt *.bak
