@@ -1561,11 +1561,13 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
     if( SvTYPE( sv ) == SVt_PVHV ) {
       HV   *hv = (HV *)sv;
 
+#if PHP_VERSION_GE(8,0,0)
       /* If mirror is active for this key, return mirror and sync to Perl */
       if( php_perl_mirror_sync( pobj, hv, member ) ) {
         retval = php_perl_mirror_read_zval( pobj, rv );
         goto php_perl_read_property_cleanup;
       }
+#endif
 
       SV * *prop_val;
 
@@ -1677,8 +1679,10 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
       result = value;
       hv_store( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), php_perl_zval_to_sv( result ), 0 );
 
+#if PHP_VERSION_GE(8,0,0)
       /* If mirror is active for this key, update mirror */
       php_perl_mirror_update_zval( pobj, member, value );
+#endif
     }
     else {
       zend_error( E_WARNING, "[perl] Not a HASH reference" );
