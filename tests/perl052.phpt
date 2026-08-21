@@ -1,5 +1,7 @@
 --TEST--
 Test 52: reading Perl cyclic structures
+--SKIPIF--
+<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '<')) echo( 'skip requires PHP 8.x reference support' ); ?>
 --FILE--
 <?php
 $perl = new Perl();
@@ -14,8 +16,6 @@ $x[0] = 2;
 var_dump($x);
 echo "ok\n";
 ?>
---XFAIL--
-var_dump *RECURSION* output differs across PHP versions (see matrix run)
 --EXPECT--
 array(2) {
   [0]=>

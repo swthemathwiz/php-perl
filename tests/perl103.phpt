@@ -1,7 +1,7 @@
 --TEST--
-Test 77: dumping a variety of objects
+Test 103: dumping a variety of objects (legacy PHP 7 version of Test 77)
 --SKIPIF--
-<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '<')) echo( 'skip requires PHP 8.x reference support' ); ?>
+<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '>=')) echo( 'skip PHP 8.x+ returns mirror value directly' ); ?>
 --FILE--
 <?php
 $perl = new Perl();
@@ -75,17 +75,18 @@ array(1) {
   ["a"]=>
   int(2)
 }
-int(2)
-object(Perl::scalar)#3 (1) {
+object(Perl::scalar)#3 (0) {
+}
+object(Perl::scalar)#4 (1) {
   [0]=>
   int(2)
 }
-object(Perl::scalar)#4 (1) {
+object(Perl::scalar)#5 (1) {
   ["a"]=>
   int(2)
 }
-object(Perl::scalar)#6 (0) {
-}
 object(Perl::scalar)#7 (0) {
+}
+object(Perl::scalar)#8 (0) {
 }
 ok
