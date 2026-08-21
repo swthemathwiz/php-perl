@@ -75,18 +75,17 @@ array(1) {
   ["a"]=>
   int(2)
 }
-object(Perl::scalar)#3 (0) {
-}
-object(Perl::scalar)#4 (1) {
+int(2)
+object(Perl::scalar)#3 (1) {
   [0]=>
   int(2)
 }
-object(Perl::scalar)#5 (1) {
+object(Perl::scalar)#4 (1) {
   ["a"]=>
   int(2)
 }
-object(Perl::scalar)#7 (0) {
+object(Perl::scalar)#6 (0) {
 }
-object(Perl::scalar)#8 (0) {
+object(Perl::scalar)#7 (0) {
 }
 ok

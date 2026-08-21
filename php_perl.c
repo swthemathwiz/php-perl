@@ -70,6 +70,9 @@ typedef struct DIR_W32 DIR;
 /* Over-sized buffer size for formatting a key as a zend_ulong or an address. */
 #define PHP_PERL_ZEND_LONG_BUF_LEN (sizeof(zend_ulong) * 8)
 
+#define PHP_PERL_IS_WRITABLE(type) \
+    ZEND_TRUTH((type) != BP_VAR_R && (type) != BP_VAR_IS)
+
 /* The TRACE_* macros and the TRACE_EXPOSE_START_STOP test functions are
  * enabled with the --enable-perl-trace configuration switch (see config.m4). */
 #ifdef PHP_PERL_TRACE
@@ -200,6 +203,8 @@ typedef struct php_perl_object {
   perl_kind    kind;           /* normal, proxy, or cleaner */
   zend_bool    remembered;     /* remembered or not */
   void        *remembered_sv;  /* the one we entered in the table */
+  zval         mirror;         /* mirror zval for reference write-back */
+  zend_string *mirror_key;     /* property name for active mirror */
 
   /* N.B.: PHP7 requires at end of data (additional data may be allocated beyond end) */
   zend_object  std;
@@ -734,7 +739,7 @@ php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
 
   zend_error( E_ERROR, "[perl] Can't convert PHP type '%s' (%d) to Perl", zend_get_type_by_const( Z_TYPE_P( zv ) ), (int)Z_TYPE_P( zv ) );
   return &PL_sv_undef;
-}   /* php_perl_zval_to_sv_noref */
+} /* php_perl_zval_to_sv_noref */
 
 /* Converts Perl's value to PHP's equivalent */
 static zval *
@@ -748,7 +753,7 @@ php_perl_sv_to_zval( SV *sv, zval *zv )
   zv = php_perl_sv_to_zval_ref( sv, zv, &var_hash );
   zend_hash_destroy( &var_hash );
   return zv;
-}   /* php_perl_sv_to_zval */
+} /* php_perl_sv_to_zval */
 
 static zval *
 php_perl_sv_to_zval_ref( SV *sv,
@@ -1142,7 +1147,7 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
 
   php_perl_object         *pobj      = php_perl_from_zop( object );
   SV                      *sv        = pobj->sv;
-  zend_bool                write     = ZEND_TRUTH( type != BP_VAR_R && type != BP_VAR_IS );
+  zend_bool                write     = PHP_PERL_IS_WRITABLE( type );
   zval                    *retval    = NULL;
 
   TRACE_ZOP( "read dimension" );
@@ -1323,10 +1328,148 @@ php_perl_unset_dimension( php_perl_zop object, php_perl_offp offset_val )
   }
 } /* php_perl_unset_dimension */
 
+/* Initialize mirror state. */
+static inline void
+php_perl_mirror_init( php_perl_object *pobj )
+{
+  ZVAL_UNDEF( &pobj->mirror );
+  pobj->mirror_key = NULL;
+} /* php_perl_mirror_init */
+
+/* Tear down mirror state: release mirror key and zval.
+ * Safe to call on PHP 7.4 where mirror is always inactive. */
+static void
+php_perl_mirror_destroy( php_perl_object *pobj )
+{
+  if( pobj->mirror_key != NULL ) {
+    zend_string_release( pobj->mirror_key );
+    pobj->mirror_key = NULL;
+  }
+  zval_ptr_dtor( &pobj->mirror );
+  ZVAL_UNDEF( &pobj->mirror );
+} /* php_perl_mirror_destroy */
+
+/* Check if mirror is active for member. */
+static inline int
+php_perl_mirror_contains( php_perl_object *pobj, zend_string *member )
+{
+  return pobj->mirror_key != NULL && zend_string_equal_content( pobj->mirror_key, member );
+} /* php_perl_mirror_contains */
+
+/* Check if mirror is active for a raw string key. */
+static inline int
+php_perl_mirror_contains_str( php_perl_object *pobj, const char *str, size_t len )
+{
+  return pobj->mirror_key != NULL
+      && len == ZSTR_LEN( pobj->mirror_key )
+      && memcmp( str, ZSTR_VAL( pobj->mirror_key ), len ) == 0;
+} /* php_perl_mirror_contains_str */
+
+#if PHP_VERSION_GE(8,0,0)
+
+/* Sync mirror value back to Perl via hv_store if mirror is active for raw string key.
+ * Returns 1 if mirror matched, 0 otherwise. */
+static int
+php_perl_mirror_sync_str( php_perl_object *pobj, HV *hv, const char *key, size_t key_len )
+{
+  if( php_perl_mirror_contains_str( pobj, key, key_len ) ) {
+    hv_store( hv, key, key_len, php_perl_zval_to_sv( &pobj->mirror ), 0 );
+    return 1;
+  }
+  return 0;
+} /* php_perl_mirror_sync_str */
+
+/* Sync mirror value back to Perl via hv_store if mirror is active for member.
+ * Returns 1 if mirror matched, 0 otherwise. */
+static int
+php_perl_mirror_sync( php_perl_object *pobj, HV *hv, zend_string *member )
+{
+  if( member == NULL ) return 0;
+  return php_perl_mirror_sync_str( pobj, hv, ZSTR_VAL( member ), ZSTR_LEN( member ) );
+} /* php_perl_mirror_sync */
+
+/* Update mirror zval from a PHP zval value if mirror is active for member. */
+static void
+php_perl_mirror_update_zval( php_perl_object *pobj, zend_string *member, zval *value )
+{
+  if( php_perl_mirror_contains( pobj, member ) ) {
+    zval_ptr_dtor( &pobj->mirror );
+    ZVAL_COPY_DEREF( &pobj->mirror, value );
+  }
+} /* php_perl_mirror_update_zval */
+
+/* Copy dereferenced mirror zval to rv. */
+static zval *
+php_perl_mirror_read_zval( php_perl_object *pobj, zval *rv )
+{
+  ZVAL_COPY_DEREF( rv, &pobj->mirror );
+  return rv;
+} /* php_perl_mirror_read_zval */
+
+/* Return the mirror zval. */
+static zval *
+php_perl_mirror_get_zval( php_perl_object *pobj )
+{
+  return &pobj->mirror;
+} /* php_perl_mirror_get_zval */
+
+/* Set mirror from an SV value for member.
+ * Syncs any existing mirror back to Perl first if key differs. */
+static zval *
+php_perl_mirror_set_sv( php_perl_object *pobj, HV *hv, SV *sv, zend_string *member )
+{
+  if( !php_perl_mirror_contains( pobj, member ) ) {
+    php_perl_mirror_sync( pobj, hv, pobj->mirror_key );
+    php_perl_mirror_destroy( pobj );
+    pobj->mirror_key = zend_string_copy( member );
+  }
+  php_perl_sv_to_zval( sv, &pobj->mirror );
+  return &pobj->mirror;
+} /* php_perl_mirror_set_sv */
+
+#endif /* PHP_VERSION_GE(8,0,0) */
+
 static zval *
 php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_zmp member_val, int type, void **cache_slot )
 {
   TRACE_SUB( "php_perl_get_property_ptr_ptr" );
+
+#if PHP_VERSION_GE(8,0,0)
+  php_perl_object *pobj = php_perl_from_zop( object );
+
+  TRACE_ZOP( "php_perl_get_property_ptr_ptr" );
+
+  /* Only handle by-ref access on PERL_NORMAL objects with a hash reference */
+  if( PHP_PERL_IS_WRITABLE( type ) && pobj->kind == PERL_NORMAL && pobj->sv != NULL ) {
+    SV *sv = php_perl_deref( pobj->sv );
+    if( SvTYPE( sv ) == SVt_PVHV ) {
+      HV        *hv = (HV *)sv;
+      SV       **prop_val;
+      zend_string *member = php_perl_get_member_string( member_val );
+
+      /* If mirror is already active, return existing */
+      if( php_perl_mirror_contains( pobj, member ) ) {
+        php_perl_release_member_string( member );
+        return php_perl_mirror_get_zval( pobj );
+      }
+
+      /* Fetch current value from Perl (read-only) */
+      prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), 0 );
+      if( prop_val != NULL ) {
+        SV *elem_sv = *prop_val;
+        /* Only create mirror for scalar values.
+         * For complex types (array/hash/object), return NULL so the
+         * proxy mechanism handles them via read_property. */
+        if( SvTYPE( elem_sv ) < SVt_PVAV && !SvROK( elem_sv ) ) {
+          zval *result = php_perl_mirror_set_sv( pobj, hv, elem_sv, member );
+          php_perl_release_member_string( member );
+          return result;
+        }
+      }
+      php_perl_release_member_string( member );
+    }
+  }
+#endif
 
   /* Fallback to read_property. */
   return NULL;
@@ -1341,7 +1484,7 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
   php_perl_object         *pobj      = php_perl_from_zop( object );
   zval                    *retval    = NULL;
   SV                      *sv        = NULL;
-  zend_bool                write     = ZEND_TRUTH( type != BP_VAR_R && type != BP_VAR_IS );
+  zend_bool                write     = PHP_PERL_IS_WRITABLE( type );
   zend_string             *member    = php_perl_get_member_string(member_val);
 
   TRACE_ZOP( "read property" );
@@ -1417,6 +1560,13 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
     sv = php_perl_deref( pobj->sv );
     if( SvTYPE( sv ) == SVt_PVHV ) {
       HV   *hv = (HV *)sv;
+
+      /* If mirror is active for this key, return mirror and sync to Perl */
+      if( php_perl_mirror_sync( pobj, hv, member ) ) {
+        retval = php_perl_mirror_read_zval( pobj, rv );
+        goto php_perl_read_property_cleanup;
+      }
+
       SV * *prop_val;
 
       prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), write );
@@ -1526,6 +1676,9 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
       HV *hv = (HV *)sv;
       result = value;
       hv_store( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), php_perl_zval_to_sv( result ), 0 );
+
+      /* If mirror is active for this key, update mirror */
+      php_perl_mirror_update_zval( pobj, member, value );
     }
     else {
       zend_error( E_WARNING, "[perl] Not a HASH reference" );
@@ -1578,6 +1731,11 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
     sv = php_perl_deref( sv );
     if( SvTYPE( sv ) == SVt_PVHV ) {
       HV *hv = (HV *)sv;
+
+#if PHP_VERSION_GE(8,0,0)
+      /* Sync mirror to Perl before checking — ensures isset/empty see current value */
+      php_perl_mirror_sync( pobj, hv, member );
+#endif
 
       if( has_set_exists < 2 ) {
         SV * *prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), 0 );
@@ -1644,6 +1802,11 @@ php_perl_unset_property( php_perl_zop object, php_perl_zmp member_val, void * *c
     if( SvTYPE( sv ) == SVt_PVHV ) {
       HV *hv = (HV *)sv;
       hv_delete( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), G_DISCARD );
+#if PHP_VERSION_GE(8,0,0)
+      if( php_perl_mirror_contains( pobj, member ) ) {
+        php_perl_mirror_destroy( pobj );
+      }
+#endif
     }
     else {
       zend_error( E_WARNING, "[perl] Not a HASH reference" );
@@ -1985,6 +2148,12 @@ php_perl_get_properties( php_perl_zop object )
     zend_hash_init( &var_hash, 0, NULL, NULL, 0 );
     hv_iterinit( hv );
     while( ( el_sv = hv_iternextsv( hv, &key, &key_len ) ) != NULL ) {
+#if PHP_VERSION_GE(8,0,0)
+      if( php_perl_mirror_sync_str( pobj, hv, key, key_len ) ) {
+        php_perl_mirror_read_zval( pobj, php_perl_hash_str_get_zval( ht, key, key_len ) );
+        continue;
+      }
+#endif
       php_perl_sv_to_zval_ref( el_sv, php_perl_hash_str_get_zval( ht, key, key_len ), &var_hash );
     }
     zend_hash_destroy( &var_hash );
@@ -2107,6 +2276,9 @@ php_perl_dtor_obj( zend_object *object )
     FREE_HASHTABLE( pobj->properties );
     pobj->properties = NULL;
   }
+
+  /* Clean up mirror for reference write-back */
+  php_perl_mirror_destroy( pobj );
 
   /* Forget the object */
   if( pobj->remembered )
@@ -2232,6 +2404,7 @@ php_perl_create_object( zend_class_entry *class_type )
   pobj->kind          = PERL_NORMAL;
   pobj->remembered    = FALSE;
   pobj->remembered_sv = NULL;
+  php_perl_mirror_init( pobj );
 
   object->handlers    = &php_perl_object_handlers;
 
@@ -2422,8 +2595,6 @@ PHP_MINIT_FUNCTION( perl )
 #if PHP_VERSION_LT(8,0,0)
   php_perl_proxy_handlers.get                   = php_perl_get;
   php_perl_proxy_handlers.set                   = php_perl_set;
-#else
-  0; /* FIXME: fix proxy handling in PHP 8.x */
 #endif
 
   return SUCCESS;

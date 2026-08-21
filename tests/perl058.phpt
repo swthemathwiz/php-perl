@@ -1,7 +1,7 @@
 --TEST--
 Test 58: testing proxy references
 --SKIPIF--
-<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '>=')) echo('skip PHP 8.x references to Perl variables unsupported'); ?>
+<?php require_once('skipif.inc'); ?>
 --FILE--
 <?php
 $perl = new Perl();
