@@ -18,6 +18,12 @@
    Memcheck:Cond
    fun:zend_string_equal_val
    obj:/usr/bin/php
+}
+
+{
+   php_perl_weird_string_comparison2
+   Memcheck:Cond
+   fun:zend_string_equal_val
    ...
 }
 
