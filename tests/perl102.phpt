@@ -1,7 +1,7 @@
 --TEST--
-Test 102: reading Perl cyclic structures (legacy PHP 7 version of Test 52)
+Test 102: reading Perl cyclic structures (PHP 7 version of 52)
 --SKIPIF--
-<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '>=')) echo( 'skip PHP 8.x+ preserves references; recursion detected earlier' ); ?>
+<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '>=')) echo( 'skip PHP 7.x only' ); ?>
 --FILE--
 <?php
 $perl = new Perl();

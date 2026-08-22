@@ -1,7 +1,7 @@
 --TEST--
-Test 101: mirror write-back via proxy reference
+Test 101: mirroring write-back via proxy reference
 --SKIPIF--
-<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '<')) echo('skip PHP 8.x mirror not active'); ?>
+<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '<')) echo('PHP 8.x only'); ?>
 --FILE--
 <?php
 $perl = new Perl();

@@ -1,7 +1,7 @@
 --TEST--
-Test 103: dumping a variety of objects (legacy PHP 7 version of Test 77)
+Test 103: dumping a variety of objects (PHP 7 version of 77)
 --SKIPIF--
-<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '>=')) echo( 'skip PHP 8.x+ returns mirror value directly' ); ?>
+<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '>=')) echo( 'skip PHP 7.x only' ); ?>
 --FILE--
 <?php
 $perl = new Perl();
