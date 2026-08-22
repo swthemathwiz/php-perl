@@ -278,10 +278,10 @@ static zval *php_perl_sv_to_zval_ref( SV *sv, zval *zv, HashTable *var_hash );
 static zval *php_perl_sv_to_zval( SV *sv, zval *zv );
 
 /* Handlers for Perl objects overloading */
-static zval *php_perl_read_property( php_perl_zop object, php_perl_zmp member, int type, void * *cache_slot, zval *rv );
-static zval *php_perl_write_property( php_perl_zop object, php_perl_zmp member, zval *value, void * *cache_slot );
-static int   php_perl_has_property( php_perl_zop object, php_perl_zmp member, int has_set_exists, void * *cache_slot );
-static void  php_perl_unset_property( php_perl_zop object, php_perl_zmp member, void * *cache_slot );
+static zval *php_perl_read_property( php_perl_zop object, php_perl_zmp member, int type, void **cache_slot, zval *rv );
+static zval *php_perl_write_property( php_perl_zop object, php_perl_zmp member, zval *value, void **cache_slot );
+static int   php_perl_has_property( php_perl_zop object, php_perl_zmp member, int has_set_exists, void **cache_slot );
+static void  php_perl_unset_property( php_perl_zop object, php_perl_zmp member, void **cache_slot );
 
 static SV *
 PerlIOPHP_getarg( pTHX_ PerlIO *f, CLONE_PARAMS *param, int flags )
@@ -369,7 +369,7 @@ php_perl_init( void )
     perl_construct( my_perl );
 
     PL_origalen = 1; /* don't let $0 assignment update the proctitle or embedding[0] */
-    perl_parse( my_perl, xs_init, sizeof(embedding)/sizeof(embedding[0]), embedding, (char * *)NULL );
+    perl_parse( my_perl, xs_init, sizeof(embedding)/sizeof(embedding[0]), embedding, (char **)NULL );
     PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
 
     PerlIO_define_layer( aTHX_ & PerlIO_PHP );
@@ -448,7 +448,7 @@ binary_hash_del( HashTable *hash, const void *key )
 } /* binary_hash_del */
 
 static inline int
-binary_hash_find( HashTable *hash, const void *key, void * *data )
+binary_hash_find( HashTable *hash, const void *key, void **data )
 {
   TRACE_SUB( "binary_hash_find" );
 
@@ -485,11 +485,11 @@ php_perl_remember_object( zend_object *object )
 
 /* Recalls mapping between Perl (SV) and PHP object (zend_object) */
 static inline int
-php_perl_recall_object( const SV *sv, zend_object * *object )
+php_perl_recall_object( const SV *sv, zend_object **object )
 {
   TRACE_SUB( "php_perl_recall_object" );
 
-  return binary_hash_find( &PERLG( perl_objects ), SvRV( sv ), (void * *)object );
+  return binary_hash_find( &PERLG( perl_objects ), SvRV( sv ), (void **)object );
 } /* php_perl_recall_object */
 
 /* Forgets mapping between Perl (SV) and PHP object (zend_object) */
@@ -614,13 +614,9 @@ php_perl_zval_to_sv_ref( zval *zv, HashTable *var_hash )
 {
   TRACE_SUB( "php_perl_zval_to_sv_ref" );
 
-  /* References are keyed by their underlying zend_reference, so PHP aliases
-   * sharing one reference convert to a single shared Perl scalar. */
-  void *key = Z_ISREF_P( zv ) ? (void *)Z_REF_P( zv ) : (void *)zv;
-
   SV *sv;
   if( ( Z_ISREF_P( zv ) || Z_TYPE_P( zv ) == IS_OBJECT || Z_TYPE_P( zv ) == IS_ARRAY ) &&
-      binary_hash_find( var_hash, key, (void * *)&sv ) == SUCCESS ) {
+      binary_hash_find( var_hash, zv, (void **)&sv ) == SUCCESS ) {
     SvREFCNT_inc( sv );
     return sv;
   }
@@ -628,7 +624,7 @@ php_perl_zval_to_sv_ref( zval *zv, HashTable *var_hash )
   sv = php_perl_zval_to_sv_noref( zv, var_hash );
 
   if( ( Z_ISREF_P( zv ) || Z_TYPE_P( zv ) == IS_OBJECT || Z_TYPE_P( zv ) == IS_ARRAY ) )
-    binary_hash_add( var_hash, key, sv );
+    binary_hash_add( var_hash, zv, sv );
   return sv;
 } /* php_perl_zval_to_sv_ref */
 
@@ -777,14 +773,9 @@ php_perl_sv_to_zval_ref( SV *sv,
 
   {
     zval *z;
-    if( SvREFCNT( sv ) > 1 && binary_hash_find( var_hash, sv, (void * *)&z ) == SUCCESS ) {
+    if( SvREFCNT( sv ) > 1 && binary_hash_find( var_hash, sv, (void **)&z ) == SUCCESS ) {
       TRACE_MSG( "linking " ZEND_ADDR_FMT " to " ZEND_ADDR_FMT, (zend_ulong)zv, (zend_ulong)z );
-      /* Alias to the previously-converted slot: wrap it in a reference in
-       * place if needed, then share that same reference, so later writes
-       * through either side stay connected. */
-      if( !Z_ISREF_P( z ) )
-        ZVAL_MAKE_REF( z );
-      ZVAL_COPY( zv, z );
+      ZVAL_NEW_REF( zv, z );
       return zv;
     }
   }
@@ -852,7 +843,7 @@ php_perl_sv_to_zval_noref( SV *sv,
       TRACE_MSG( "zval array size[%d]", (int)len + 1 );
       array_init_size( zv, len + 1 );
       for( i = 0; i <= len; i++ ) {
-        SV * *el_sv = av_fetch( (AV *)sv, i, 0 );
+        SV **el_sv = av_fetch( (AV *)sv, i, 0 );
         if( el_sv != NULL && *el_sv != NULL ) {
           TRACE_MSG( "zval array [%d]", (int)i );
           php_perl_sv_to_zval_ref( *el_sv, php_perl_array_get_zval( zv, i ), var_hash );
@@ -1182,8 +1173,8 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
 
   if( SvTYPE( sv ) == SVt_PVAV ) {
     AV        *av = (AV *)sv;
-    SV      * *prop_val;
-    zend_long offset;
+    SV       **prop_val;
+    zend_long  offset;
 
     if( !php_perl_get_array_offset( offset_val, &offset ) ) {
       zend_error( E_WARNING, "[perl] Array index must be an integer" );
@@ -1282,7 +1273,7 @@ php_perl_has_dimension( php_perl_zop object, php_perl_offp offset_val, int check
     }
     /* empty() */
     else if( check_empty ) {
-      SV * *prop_val = av_fetch( av, offset, 0 );
+      SV **prop_val = av_fetch( av, offset, 0 );
       if( prop_val != NULL ) {
         zval zv;
         ZVAL_UNDEF( &zv );
@@ -1414,12 +1405,12 @@ static void
 php_perl_mirror_update_zval( php_perl_object *pobj, zend_string *member, zval *value )
 {
   if( php_perl_mirror_contains( pobj, member ) ) {
-    zval *slot = &pobj->mirror;
-    if( Z_ISREF_P( slot ) ) {
-      slot = Z_REFVAL_P( slot );
+    zval *zv = &pobj->mirror;
+    if( Z_ISREF_P( zv ) ) {
+      zv = Z_REFVAL_P( zv );
     }
-    zval_ptr_dtor( slot );
-    ZVAL_COPY_DEREF( slot, value );
+    zval_ptr_dtor( zv );
+    ZVAL_COPY_DEREF( zv, value );
   }
 } /* php_perl_mirror_update_zval */
 
@@ -1502,7 +1493,7 @@ php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_zmp member_val, int
 
 /* Returns property of hash based on Perl's object */
 static zval *
-php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, void * *key_, zval *rv )
+php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, void **key_, zval *rv )
 {
   TRACE_SUB( "php_perl_read_property" );
 
@@ -1621,7 +1612,7 @@ php_perl_read_property_cleanup:
 
 /* Sets property of hash based on Perl's object */
 static zval *
-php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *value, void * *cache_slot )
+php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *value, void **cache_slot )
 {
   TRACE_SUB( "php_perl_write_property" );
 
@@ -1718,7 +1709,7 @@ php_perl_write_property( php_perl_zop object, php_perl_zmp member_val, zval *val
 
 /* Checks if property of hash based on Perl's object isset or empty */
 static int
-php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set_exists, void * *cache_slot )
+php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set_exists, void **cache_slot )
 {
   TRACE_SUB( "php_perl_has_property" );
 
@@ -1799,7 +1790,7 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
 
 /* Deletes property of hash based on Perl's object */
 static void
-php_perl_unset_property( php_perl_zop object, php_perl_zmp member_val, void * *cache_slot )
+php_perl_unset_property( php_perl_zop object, php_perl_zmp member_val, void **cache_slot )
 {
   TRACE_SUB( "php_perl_unset_property" );
 
@@ -2193,7 +2184,7 @@ php_perl_get_properties( php_perl_zop object )
     ht = php_perl_alloc_properties( pobj );
     zend_hash_init( &var_hash, 0, NULL, NULL, 0 );
     for( i = 0; i <= len; i++ ) {
-      SV * *el_sv = av_fetch( av, i, 0 );
+      SV **el_sv = av_fetch( av, i, 0 );
       if( el_sv != NULL && *el_sv != NULL )
         php_perl_sv_to_zval_ref( *el_sv, php_perl_hash_index_get_zval( ht, (zend_ulong)i ), &var_hash );
     }
@@ -2359,7 +2350,7 @@ php_perl_clone( php_perl_zop old_object )
 
       new_sv = (SV *)newAV();
       for( i = 0; i <= len; i++ ) {
-        SV * *el_sv = av_fetch( (AV *)old_sv, i, 0 );
+        SV **el_sv = av_fetch( (AV *)old_sv, i, 0 );
         if( el_sv != NULL && *el_sv != NULL )
           av_push( (AV *)new_sv, newSVsv( *el_sv ) );
       }
