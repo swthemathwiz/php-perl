@@ -62,5 +62,3 @@ array(2) {
   }
 }
 ok
---XFAIL--
-Passing references not supported.
