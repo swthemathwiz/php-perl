@@ -70,33 +70,32 @@ typedef struct DIR_W32 DIR;
 /* Over-sized buffer size for formatting a key as a zend_ulong or an address. */
 #define PHP_PERL_ZEND_LONG_BUF_LEN (sizeof(zend_ulong) * 8)
 
-#define PHP_PERL_IS_WRITABLE(type) \
+/* True if an object-handler access type implies writing through the returned
+ * storage: BP_VAR_R (read) and BP_VAR_IS (isset/empty) do not, while
+ * BP_VAR_W, BP_VAR_RW, BP_VAR_UNSET, and BP_VAR_FUNC_ARG all do. */
+#define PHP_PERL_NEEDS_WRITE_ACCESS(type) \
     ZEND_TRUTH((type) != BP_VAR_R && (type) != BP_VAR_IS)
 
 /* The TRACE_* macros and the TRACE_EXPOSE_START_STOP test functions are
  * enabled with the --enable-perl-trace configuration switch (see config.m4). */
 #ifdef PHP_PERL_TRACE
-#define TRACE_ASSERT( C )        do { if( !( C ) ) abort(); } while( 0 )
+#define TRACE_ASSERT( C )         do { if( !( C ) ) abort(); } while( 0 )
 #define TRACE_SUB( S )            int _trace_rc ZEND_ATTRIBUTE_UNUSED = fprintf( stderr, "%s\n", ( S ) ) | fflush( stderr );
-#define TRACE_MSG( S )            do { fprintf( stderr, "  %s\n", ( S ) ); fflush( stderr ); } while( 0 )
-#define TRACE_MSG2( F, V )        do { fprintf( stderr, "  " F "\n", ( V ) ); fflush( stderr ); } while( 0 )
-#define TRACE_MSG3( F, V1, V2 )   do { fprintf( stderr, "  " F "\n", ( V1 ), ( V2 ) ); fflush( stderr ); } while( 0 )
+#define TRACE_MSG( F, ... )       do { fprintf( stderr, "  " F "\n", ## __VA_ARGS__ ); fflush( stderr ); } while( 0 )
 #define TRACE_SV_DUMP( SV )       do { sv_dump( ( SV ) ); } while( 0 )
-#define TRACE_ZV_DUMP( N, ZV )    do { fprintf( stderr, "  zend value '%s': type %s\n", (N), zend_get_type_by_const( Z_TYPE_P( (ZV) ) ) ); } while( 0 )
-#define TRACE_PERL_OBJECT( D, O ) do { fprintf( stderr, "  %s " ZEND_ADDR_FMT " (perl) sv=" ZEND_ADDR_FMT "\n", (D), (zend_ulong)(O), (zend_ulong)((O)->sv) ); fflush( stderr ); } while( 0 )
-#define TRACE_ZEND_OBJECT( D, O ) do { fprintf( stderr, "  %s " ZEND_ADDR_FMT " (zend)\n", (D), (zend_ulong)(O) ); fflush( stderr ); } while( 0 )
+#define TRACE_ZV_DUMP( N, ZV )    TRACE_MSG( "zend value '%s': type %s", (N), zend_get_type_by_const( Z_TYPE_P( (ZV) ) ) )
+#define TRACE_PERL_OBJECT( D, O ) TRACE_MSG( "%s " ZEND_ADDR_FMT " (perl) sv=" ZEND_ADDR_FMT, (D), (zend_ulong)(O), (zend_ulong)((O)->sv) )
+#define TRACE_ZEND_OBJECT( D, O ) TRACE_MSG( "%s " ZEND_ADDR_FMT " (zend)", (D), (zend_ulong)(O) )
 #define TRACE_ZOP( D )            do { TRACE_PERL_OBJECT( (D), pobj ); TRACE_ZEND_OBJECT( (D), php_perl_zend_from_zop(object) ); } while( 0 )
 #define TRACE_EXPOSE_START_STOP
 #else
 #define TRACE_ASSERT( C )
 #define TRACE_SUB( S )
-#define TRACE_MSG( S )
-#define TRACE_MSG2( F, V )
-#define TRACE_MSG3( F, V1, V2 )
+#define TRACE_MSG( F, ... )
 #define TRACE_SV_DUMP( SV )
 #define TRACE_ZV_DUMP( N, ZV )
-#define TRACE_PERL_OBJECT( D, O ) (void)((O))
-#define TRACE_ZEND_OBJECT( D, O ) (void)((O))
+#define TRACE_PERL_OBJECT( D, O )
+#define TRACE_ZEND_OBJECT( D, O )
 #define TRACE_ZOP( D )
 #undef  TRACE_EXPOSE_START_STOP
 #endif /* ifdef PHP_PERL_TRACE */
@@ -203,8 +202,8 @@ typedef struct php_perl_object {
   perl_kind    kind;           /* normal, proxy, or cleaner */
   zend_bool    remembered;     /* remembered or not */
   void        *remembered_sv;  /* the one we entered in the table */
-  zval         mirror;         /* mirror zval for reference write-back */
-  zend_string *mirror_key;     /* property name for active mirror */
+  zval         mirror;         /* mirror zval for reference write-back; IS_UNDEF when inactive */
+  zend_string *mirror_key;     /* property name for active mirror; ZSTR_EMPTY_ALLOC() when inactive */
 
   /* N.B.: PHP7 requires at end of data (additional data may be allocated beyond end) */
   zend_object  std;
@@ -368,7 +367,7 @@ php_perl_init( void )
     PerlIO_define_layer( aTHX_ & PerlIO_PHP );
     PerlIO_push(aTHX_ PerlIO_stdout(), &PerlIO_PHP, "w", NULL);
 
-    TRACE_MSG2( "perl interpreter " ZEND_ADDR_FMT " created", (zend_ulong)my_perl );
+    TRACE_MSG( "perl interpreter " ZEND_ADDR_FMT " created", (zend_ulong)my_perl );
     PERLG( perl )  = my_perl;
     zend_hash_init( &PERLG( perl_objects ), 0, NULL, NULL, 0 );
   }
@@ -392,7 +391,7 @@ php_perl_destroy( void )
     perl_destruct( my_perl );
     perl_free( my_perl );
 
-    TRACE_MSG2( "perl interpreter " ZEND_ADDR_FMT " freed", (zend_ulong)my_perl );
+    TRACE_MSG( "perl interpreter " ZEND_ADDR_FMT " freed", (zend_ulong)my_perl );
     zend_hash_destroy( &PERLG( perl_objects ) );
     PERLG( perl ) = NULL;
 
@@ -410,13 +409,13 @@ binary_hash_add( HashTable *hash, const void *key, void *data )
   TRACE_SUB( "binary_hash_add" );
 
   if( sizeof( zend_ulong ) >= sizeof( void * ) ) {
-    TRACE_MSG3( "key = " ZEND_ADDR_FMT " <-> " ZEND_ADDR_FMT, (size_t)key, (size_t)data );
+    TRACE_MSG( "key = " ZEND_ADDR_FMT " <-> " ZEND_ADDR_FMT, (size_t)key, (size_t)data );
     zend_hash_index_add_ptr( hash, (zend_ulong)key, data );
   }
   else {
     char key_str[PHP_PERL_ZEND_LONG_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
-    TRACE_MSG3( "key = %s <-> " ZEND_ADDR_FMT, key_str, (size_t)data );
+    TRACE_MSG( "key = %s <-> " ZEND_ADDR_FMT, key_str, (size_t)data );
 
     zend_hash_str_add_ptr( hash, key_str, strlen( key_str ), data );
   }
@@ -429,13 +428,13 @@ binary_hash_del( HashTable *hash, const void *key )
   TRACE_SUB( "binary_hash_del" );
 
   if( sizeof( zend_ulong ) >= sizeof( void * ) ) {
-    TRACE_MSG2( "key = " ZEND_ADDR_FMT " deleted", (size_t)key );
+    TRACE_MSG( "key = " ZEND_ADDR_FMT " deleted", (size_t)key );
     zend_hash_index_del( hash, (zend_ulong)key );
   }
   else {
     char key_str[PHP_PERL_ZEND_LONG_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
-    TRACE_MSG2( "key = %s deleted", key_str );
+    TRACE_MSG( "key = %s deleted", key_str );
     zend_hash_str_del( hash, key_str, strlen( key_str ) );
   }
 } /* binary_hash_del */
@@ -447,13 +446,13 @@ binary_hash_find( HashTable *hash, const void *key, void * *data )
 
   if( sizeof( zend_ulong ) >= sizeof( void * ) ) {
     *data = zend_hash_index_find_ptr( hash, (zend_ulong)key );
-    TRACE_MSG3( "key = " ZEND_ADDR_FMT " %s", (size_t)key, ( *data == NULL ) ? "not found" : "found" );
+    TRACE_MSG( "key = " ZEND_ADDR_FMT " %s", (size_t)key, ( *data == NULL ) ? "not found" : "found" );
   }
   else {
     char key_str[PHP_PERL_ZEND_LONG_BUF_LEN];
     zend_sprintf( key_str, ZEND_ADDR_FMT, (size_t)key );
     *data = zend_hash_str_find_ptr( hash, key_str, strlen( key_str ) );
-    TRACE_MSG3( "key = %s %s", key_str, ( *data == NULL ) ? "not found" : "found" );
+    TRACE_MSG( "key = %s %s", key_str, ( *data == NULL ) ? "not found" : "found" );
   }
 
   return ( *data == NULL ) ? FAILURE : SUCCESS;
@@ -626,7 +625,7 @@ php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
 {
   TRACE_SUB( "php_perl_zval_to_sv_noref" );
 
-  //TRACE_MSG2( "zend %s", zend_get_type_by_const( Z_TYPE_P( zv ) ) );
+  //TRACE_MSG( "zend %s", zend_get_type_by_const( Z_TYPE_P( zv ) ) );
   TRACE_ZV_DUMP( "zend", zv );
   switch( Z_TYPE_P( zv ) ) {
     case IS_NULL:
@@ -665,7 +664,7 @@ php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
           }
         }
 
-        TRACE_MSG2( "zend array ishash=%d", (int)is_hash );
+        TRACE_MSG( "zend array ishash=%d", (int)is_hash );
 
         /* converting to Perl's hash */
         if( is_hash ) {
@@ -724,7 +723,7 @@ php_perl_zval_to_sv_noref( zval *zv, HashTable *var_hash )
       /* We got some other type of object */
       {
         zend_string *name = zend_std_get_class_name( Z_OBJ_P( zv ) );
-        TRACE_MSG2( "zend '%s' object", ZSTR_VAL( name ) );
+        TRACE_MSG( "zend '%s' object", ZSTR_VAL( name ) );
         zend_error( E_ERROR, "[perl] Can't convert class '%s' object to Perl", ZSTR_VAL( name ) );
         zend_string_release( name );
       }
@@ -767,7 +766,7 @@ php_perl_sv_to_zval_ref( SV *sv,
   {
     zval *z;
     if( SvREFCNT( sv ) > 1 && binary_hash_find( var_hash, sv, (void * *)&z ) == SUCCESS ) {
-      TRACE_MSG3( "linking " ZEND_ADDR_FMT " to " ZEND_ADDR_FMT, (zend_ulong)zv, (zend_ulong)z );
+      TRACE_MSG( "linking " ZEND_ADDR_FMT " to " ZEND_ADDR_FMT, (zend_ulong)zv, (zend_ulong)z );
       ZVAL_NEW_REF( zv, z );
       return zv;
     }
@@ -796,25 +795,25 @@ php_perl_sv_to_zval_noref( SV *sv,
     }
     else if( SvIOK( sv ) ) {              /* integer */
       ZVAL_LONG( zv, SvIV( sv ) );
-      TRACE_MSG2( "zval long (%ld)", (long)Z_LVAL_P( zv ) );
+      TRACE_MSG( "zval long (%ld)", (long)Z_LVAL_P( zv ) );
     }
     else if( SvNOK( sv ) ) {              /* double */
       ZVAL_DOUBLE( zv, SvNV( sv ) );
-      TRACE_MSG2( "zval double (%lf)", (double)Z_DVAL_P( zv ) );
+      TRACE_MSG( "zval double (%lf)", (double)Z_DVAL_P( zv ) );
     }
     else if( SvPOK( sv ) ) {              /* string */
       STRLEN len;
       char  *str = SvPV( sv, len );
       ZVAL_STRINGL( zv, str, len );
-      TRACE_MSG2( "zval string (\"%s\")", Z_STRVAL_P( zv ) );
+      TRACE_MSG( "zval string (\"%s\")", Z_STRVAL_P( zv ) );
     }
     else if( sv_isobject( sv ) ) {        /* object */
       zend_object *recalled_object;
-      TRACE_MSG2( "zval object (sv=" ZEND_ADDR_FMT ")", (zend_ulong)sv );
+      TRACE_MSG( "zval object (sv=" ZEND_ADDR_FMT ")", (zend_ulong)sv );
 
       /* Check for recursion here */
       if( php_perl_recall_object( sv, &recalled_object ) == SUCCESS ) {
-        TRACE_MSG2( "creating recalled object (sv=" ZEND_ADDR_FMT ")", (zend_ulong)sv );
+        TRACE_MSG( "creating recalled object (sv=" ZEND_ADDR_FMT ")", (zend_ulong)sv );
         ZVAL_NEW_REF( zv, &EG( uninitialized_zval ) );
         ZVAL_OBJ( Z_REFVAL_P( zv ), recalled_object );
         GC_ADDREF( recalled_object );
@@ -833,12 +832,12 @@ php_perl_sv_to_zval_noref( SV *sv,
       I32 i   = 0;
       I32 len = av_len( (AV *)sv );
 
-      TRACE_MSG2( "zval array size[%d]", (int)len + 1 );
+      TRACE_MSG( "zval array size[%d]", (int)len + 1 );
       array_init_size( zv, len + 1 );
       for( i = 0; i <= len; i++ ) {
         SV * *el_sv = av_fetch( (AV *)sv, i, 0 );
         if( el_sv != NULL && *el_sv != NULL ) {
-          TRACE_MSG2( "zval array [%d]", (int)i );
+          TRACE_MSG( "zval array [%d]", (int)i );
           php_perl_sv_to_zval_ref( *el_sv, php_perl_array_get_zval( zv, i ), var_hash );
         }
       }
@@ -852,7 +851,7 @@ php_perl_sv_to_zval_noref( SV *sv,
       array_init( zv );
       hv_iterinit( (HV *)sv );
       while( ( el_sv = hv_iternextsv( (HV *)sv, &key, &key_len ) ) != NULL ) {
-        TRACE_MSG2( "zval key (%s)", key );
+        TRACE_MSG( "zval key (%s)", key );
         php_perl_sv_to_zval_ref( el_sv, php_perl_hash_get_zval( zv, key, key_len ), var_hash );
       }
     }
@@ -891,7 +890,7 @@ php_perl_call_constructor( const char *class_name,
   strcpy( func + class_name_len, "::" );
   strcpy( func + class_name_len + 2, constructor );
 
-  TRACE_MSG3( "call constructor '%s' (%d args)", func, argc );
+  TRACE_MSG( "call constructor '%s' (%d args)", func, argc );
 
   ENTER;                                                         /* everything created after here    */
   SAVETMPS;                                                      /* ...is a temporary variable.      */
@@ -934,7 +933,7 @@ php_perl_call_method( SV *obj,
 
   int i;
 
-  TRACE_MSG2( "call method '%s'", func );
+  TRACE_MSG( "call method '%s'", func );
 
   ENTER;                                                         /* everything created after here    */
   SAVETMPS;                                                      /* ...is a temporary variable.      */
@@ -1003,7 +1002,7 @@ php_perl_call( const char *func, int argc, zval *argv,
 
   int i;
 
-  TRACE_MSG2( "call '%s'", func );
+  TRACE_MSG( "call '%s'", func );
 
   ENTER;                                                     /* everything created after here    */
   SAVETMPS;                                                  /* ...is a temporary variable.      */
@@ -1147,7 +1146,7 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
 
   php_perl_object         *pobj      = php_perl_from_zop( object );
   SV                      *sv        = pobj->sv;
-  zend_bool                write     = PHP_PERL_IS_WRITABLE( type );
+  zend_bool                write     = PHP_PERL_NEEDS_WRITE_ACCESS( type );
   zval                    *retval    = NULL;
 
   TRACE_ZOP( "read dimension" );
@@ -1160,7 +1159,7 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
     return NULL;
   }
 
-  TRACE_MSG2( "write = %d", (int)write );
+  TRACE_MSG( "write = %d", (int)write );
 
   sv = php_perl_deref( sv );
 
@@ -1174,7 +1173,7 @@ php_perl_read_dimension( php_perl_zop object, php_perl_offp offset_val, int type
       return &EG( uninitialized_zval );
     }
 
-    TRACE_MSG2( "read_dim offset = %ld", (long)offset );
+    TRACE_MSG( "read_dim offset = %ld", (long)offset );
 
     prop_val = av_fetch( av, offset, write );
     if( prop_val != NULL ) {
@@ -1333,77 +1332,86 @@ static inline void
 php_perl_mirror_init( php_perl_object *pobj )
 {
   ZVAL_UNDEF( &pobj->mirror );
-  pobj->mirror_key = NULL;
+  pobj->mirror_key = ZSTR_EMPTY_ALLOC();
 } /* php_perl_mirror_init */
 
 /* Tear down mirror state: release mirror key and zval.
- * Safe to call on PHP 7.4 where mirror is always inactive. */
+ * The key resets to the interned empty string, so this is safe to call
+ * regardless of state and on PHP 7.4 where the mirror is always inactive. */
 static void
 php_perl_mirror_destroy( php_perl_object *pobj )
 {
-  if( pobj->mirror_key != NULL ) {
-    zend_string_release( pobj->mirror_key );
-    pobj->mirror_key = NULL;
-  }
+  zend_string_release( pobj->mirror_key );
+  pobj->mirror_key = ZSTR_EMPTY_ALLOC();
   zval_ptr_dtor( &pobj->mirror );
   ZVAL_UNDEF( &pobj->mirror );
 } /* php_perl_mirror_destroy */
 
+#if PHP_VERSION_GE(8,0,0)
+
 /* Check if mirror is active for member. */
-static inline int
+static inline zend_bool
 php_perl_mirror_contains( php_perl_object *pobj, zend_string *member )
 {
-  return pobj->mirror_key != NULL && zend_string_equal_content( pobj->mirror_key, member );
+  return Z_TYPE( pobj->mirror ) != IS_UNDEF
+      && zend_string_equal_content( pobj->mirror_key, member );
 } /* php_perl_mirror_contains */
 
 /* Check if mirror is active for a raw string key. */
-static inline int
+static inline zend_bool
 php_perl_mirror_contains_str( php_perl_object *pobj, const char *str, size_t len )
 {
-  return pobj->mirror_key != NULL
+  return Z_TYPE( pobj->mirror ) != IS_UNDEF
       && len == ZSTR_LEN( pobj->mirror_key )
       && memcmp( str, ZSTR_VAL( pobj->mirror_key ), len ) == 0;
 } /* php_perl_mirror_contains_str */
 
-#if PHP_VERSION_GE(8,0,0)
-
 /* Sync mirror value back to Perl via hv_store if mirror is active for raw string key.
- * Returns 1 if mirror matched, 0 otherwise. */
-static int
+ * Returns TRUE if mirror matched, FALSE otherwise. */
+static zend_bool
 php_perl_mirror_sync_str( php_perl_object *pobj, HV *hv, const char *key, size_t key_len )
 {
   if( php_perl_mirror_contains_str( pobj, key, key_len ) ) {
     hv_store( hv, key, key_len, php_perl_zval_to_sv( &pobj->mirror ), 0 );
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 } /* php_perl_mirror_sync_str */
 
 /* Sync mirror value back to Perl via hv_store if mirror is active for member.
- * Returns 1 if mirror matched, 0 otherwise. */
-static int
+ * Returns TRUE if mirror matched, FALSE otherwise. */
+static zend_bool
 php_perl_mirror_sync( php_perl_object *pobj, HV *hv, zend_string *member )
 {
-  if( member == NULL ) return 0;
-  return php_perl_mirror_sync_str( pobj, hv, ZSTR_VAL( member ), ZSTR_LEN( member ) );
+  if( php_perl_mirror_contains( pobj, member ) ) {
+    hv_store( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), php_perl_zval_to_sv( &pobj->mirror ), 0 );
+    return TRUE;
+  }
+  return FALSE;
 } /* php_perl_mirror_sync */
 
-/* Update mirror zval from a PHP zval value if mirror is active for member. */
+/* Update mirror zval from a PHP zval value if mirror is active for member.
+ * If the mirror holds a live reference, write through it so that any
+ * aliases bound earlier stay connected to this property. */
 static void
 php_perl_mirror_update_zval( php_perl_object *pobj, zend_string *member, zval *value )
 {
   if( php_perl_mirror_contains( pobj, member ) ) {
-    zval_ptr_dtor( &pobj->mirror );
-    ZVAL_COPY_DEREF( &pobj->mirror, value );
+    zval *slot = &pobj->mirror;
+    if( Z_ISREF_P( slot ) ) {
+      slot = Z_REFVAL_P( slot );
+    }
+    zval_ptr_dtor( slot );
+    ZVAL_COPY_DEREF( slot, value );
   }
 } /* php_perl_mirror_update_zval */
 
 /* Copy dereferenced mirror zval to rv. */
 static inline zval *
-php_perl_mirror_read_zval( php_perl_object *pobj, zval *rv )
+php_perl_mirror_read_zval( php_perl_object *pobj, zval *retval )
 {
-  ZVAL_COPY_DEREF( rv, &pobj->mirror );
-  return rv;
+  ZVAL_COPY_DEREF( retval, &pobj->mirror );
+  return retval;
 } /* php_perl_mirror_read_zval */
 
 /* Return the mirror zval. */
@@ -1440,7 +1448,7 @@ php_perl_get_property_ptr_ptr( php_perl_zop object, php_perl_zmp member_val, int
   TRACE_ZOP( "php_perl_get_property_ptr_ptr" );
 
   /* Only handle by-ref access on PERL_NORMAL objects with a hash reference */
-  if( PHP_PERL_IS_WRITABLE( type ) && pobj->kind == PERL_NORMAL && pobj->sv != NULL ) {
+  if( PHP_PERL_NEEDS_WRITE_ACCESS( type ) && pobj->kind == PERL_NORMAL && pobj->sv != NULL ) {
     SV *sv = php_perl_deref( pobj->sv );
     if( SvTYPE( sv ) == SVt_PVHV ) {
       HV        *hv = (HV *)sv;
@@ -1484,7 +1492,7 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
   php_perl_object         *pobj      = php_perl_from_zop( object );
   zval                    *retval    = NULL;
   SV                      *sv        = NULL;
-  zend_bool                write     = PHP_PERL_IS_WRITABLE( type );
+  zend_bool                write     = PHP_PERL_NEEDS_WRITE_ACCESS( type );
   zend_string             *member    = php_perl_get_member_string(member_val);
 
   TRACE_ZOP( "read property" );
@@ -1494,7 +1502,7 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
 
   /* All perl 'member' properties are variables, except for a few predefined specials */
 
-  TRACE_MSG2( "member '%s'", ZSTR_VAL( member ) ? ZSTR_VAL( member ) : "<undefined>" );
+  TRACE_MSG( "member '%s'", ZSTR_VAL( member ) ? ZSTR_VAL( member ) : "<undefined>" );
 
   /* Handle the intermediate special operators */
   if( pobj->kind != PERL_SPECIAL ) {
@@ -1569,9 +1577,7 @@ php_perl_read_property( php_perl_zop object, php_perl_zmp member_val, int type, 
       }
 #endif
 
-      SV * *prop_val;
-
-      prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), write );
+      SV **prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), write );
       sv = (prop_val == NULL) ? NULL : *prop_val;
     }
     else {
@@ -1706,9 +1712,9 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
 
   TRACE_ZOP( "has property" );
 
-  TRACE_MSG2( "member '%s'", ZSTR_VAL( member ) );
-  TRACE_MSG2( "has_set_exists=%d", (int)has_set_exists );
-  TRACE_MSG2( "sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
+  TRACE_MSG( "member '%s'", ZSTR_VAL( member ) );
+  TRACE_MSG( "has_set_exists=%d", (int)has_set_exists );
+  TRACE_MSG( "sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
 
   if( sv == NULL ) {
     if( pobj->context == PERL_ARRAY ) {
@@ -1742,8 +1748,7 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
 #endif
 
       if( has_set_exists < 2 ) {
-        SV * *prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), 0 );
-
+        SV **prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), 0 );
         sv = (prop_val == NULL) ? NULL : *prop_val;
       }
 
@@ -1867,7 +1872,7 @@ php_perl_do_operation( zend_uchar opcode, zval *result, zval *op1, zval *op2 )
 #define OPCODE_IS_VALID(X)  ((X) != 0 && (X) < OPCODE_COUNT)
 #define OPCODE_IMAGE(X)     (OPCODE_IS_VALID(X) ? opcode_mapping[(X)] : "unexpected")
 
-  TRACE_MSG3( "opcode = %u (%s)", (unsigned)opcode, OPCODE_IMAGE(opcode) );
+  TRACE_MSG( "opcode = %u (%s)", (unsigned)opcode, OPCODE_IMAGE(opcode) );
   if( !OPCODE_IS_VALID(opcode) ) {
     zend_error( E_ERROR, "[perl] Unexpected operator (%u)", (unsigned)opcode );
     goto do_operation_failed;
@@ -2009,7 +2014,7 @@ PHP_METHOD( Perl, __construct )
   TRACE_ASSERT( php_perl_from_zend( Z_OBJ_P( ZEND_THIS ) )->kind == PERL_NORMAL );
   TRACE_ASSERT( Z_OBJ_HT_P( ZEND_THIS ) == &php_perl_object_handlers );
 
-  TRACE_MSG2( "argc = %d", (int)EX_NUM_ARGS() );
+  TRACE_MSG( "argc = %d", (int)EX_NUM_ARGS() );
   /* No arguments ... this is a call to new Perl(), and we are done. */
   if( EX_NUM_ARGS() != 0 ) {
     char  *perl_class           = NULL;
@@ -2078,7 +2083,7 @@ PHP_METHOD( Perl, __call )
   argc = zend_hash_num_elements(Z_ARRVAL_P(array));
   argv = argc ? (zval *)safe_emalloc( argc, sizeof( zval ), 0 ) : NULL;
 
-  TRACE_MSG3( "method '%s' with %d args", ZSTR_VAL( method ), argc );
+  TRACE_MSG( "method '%s' with %d args", ZSTR_VAL( method ), argc );
   if( argv ) {
     zval *argument_array = argv;
     zval *param_ptr;
@@ -2275,7 +2280,7 @@ php_perl_dtor_obj( zend_object *object )
 
   /* Removing properties */
   if( pobj->properties ) {
-    TRACE_MSG2( "free properties " ZEND_ADDR_FMT " (perl)", (zend_ulong)pobj );
+    TRACE_MSG( "free properties " ZEND_ADDR_FMT " (perl)", (zend_ulong)pobj );
     zend_hash_destroy( pobj->properties );
     FREE_HASHTABLE( pobj->properties );
     pobj->properties = NULL;
@@ -2290,7 +2295,7 @@ php_perl_dtor_obj( zend_object *object )
 
   /* Remove perl object if not a special operator */
   if( pobj->sv != NULL ) {
-    TRACE_MSG3( "sv free ref count " ZEND_ADDR_FMT " sv (ref count = %d)", (zend_ulong)( pobj->sv ), (int)SvREFCNT( pobj->sv ) );
+    TRACE_MSG( "sv free ref count " ZEND_ADDR_FMT " sv (ref count = %d)", (zend_ulong)( pobj->sv ), (int)SvREFCNT( pobj->sv ) );
     TRACE_ASSERT( SvREFCNT( pobj->sv ) >= 1 );
     SvREFCNT_dec( pobj->sv );
     pobj->sv = NULL;
@@ -2371,6 +2376,7 @@ php_perl_clone( php_perl_zop old_object )
     pobj->kind          = old_pobj->kind;
     pobj->remembered    = FALSE;
     pobj->remembered_sv = NULL;
+    php_perl_mirror_init( pobj );
 
     TRACE_PERL_OBJECT( "clone", pobj );
     TRACE_ZEND_OBJECT( "clone", object );
@@ -2649,7 +2655,7 @@ PHP_METHOD( Perl, require )
     Z_PARAM_STRING( perl_filename, perl_filename_len )
   ZEND_PARSE_PARAMETERS_END();
 
-  TRACE_MSG2( "requiring '%s'", perl_filename );
+  TRACE_MSG( "requiring '%s'", perl_filename );
 
   (void) php_perl_init();
 
@@ -2679,7 +2685,7 @@ PHP_METHOD( Perl, eval )
   {
     SV *sv;
 
-    TRACE_MSG2( "evaluating '%s'", perl_code );
+    TRACE_MSG( "evaluating '%s'", perl_code );
 
     (void) php_perl_init();
 
@@ -2691,9 +2697,9 @@ PHP_METHOD( Perl, eval )
       TRACE_PERL_OBJECT( "eval", pobj );
       TRACE_ZEND_OBJECT( "eval", Z_OBJ_P( ZEND_THIS ) );
 
-      TRACE_MSG2( "<this> perl = %d", (int)php_perl_is_our_zval( ZEND_THIS ) );
-      TRACE_MSG2( "<this> context = %d", (int)pobj->context );
-      TRACE_MSG2( "return value is perl = %d", (int)php_perl_is_our_zval( return_value ) );
+      TRACE_MSG( "<this> perl = %d", (int)php_perl_is_our_zval( ZEND_THIS ) );
+      TRACE_MSG( "<this> context = %d", (int)pobj->context );
+      TRACE_MSG( "return value is perl = %d", (int)php_perl_is_our_zval( return_value ) );
 
       if( pobj->context != PERL_SCALAR ) {
         int       count, i;
@@ -2726,14 +2732,14 @@ PHP_METHOD( Perl, eval )
       else {
         eval_sv( sv, G_SCALAR );
         SPAGAIN;
-        TRACE_MSG2( "scalar (no discard) sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
+        TRACE_MSG( "scalar (no discard) sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
         php_perl_sv_to_zval( POPs, return_value );
         TRACE_MSG( "back" );
       }
       PUTBACK;
     }
     else {
-      TRACE_MSG2( "scalar (discard) sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
+      TRACE_MSG( "scalar (discard) sv=" ZEND_ADDR_FMT, (zend_ulong)sv );
       eval_sv( sv, G_DISCARD );
       TRACE_MSG( "back" );
     }
