@@ -1,7 +1,7 @@
 --TEST--
 Test 53: passing PHP cyclic structures
 --SKIPIF--
-<?php require_once('skipif.inc'); ?>
+<?php require_once('skipif.inc'); if (version_compare(phpversion(), '8.0.0', '<')) echo( 'skip PHP 8.x only' ); ?>
 --FILE--
 <?php
 $perl = new Perl();
@@ -32,6 +32,12 @@ array(2) {
   [0]=>
   int(2)
   [1]=>
+  *RECURSION*
+}
+array(2) {
+  [0]=>
+  int(3)
+  [1]=>
   &array(2) {
     [0]=>
     int(2)
@@ -41,24 +47,8 @@ array(2) {
 }
 array(2) {
   [0]=>
-  int(3)
-  [1]=>
-  array(2) {
-    [0]=>
-    int(3)
-    [1]=>
-    *RECURSION*
-  }
-}
-array(2) {
-  [0]=>
   int(4)
   [1]=>
-  &array(2) {
-    [0]=>
-    int(4)
-    [1]=>
-    *RECURSION*
-  }
+  *RECURSION*
 }
 ok
