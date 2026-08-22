@@ -30,5 +30,3 @@ array(2) {
   &int(2)
 }
 ok
---XFAIL--
-Passing references not supported.

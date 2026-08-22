@@ -614,9 +614,13 @@ php_perl_zval_to_sv_ref( zval *zv, HashTable *var_hash )
 {
   TRACE_SUB( "php_perl_zval_to_sv_ref" );
 
+  /* References are keyed by their underlying zend_reference, so PHP aliases
+   * sharing one reference convert to a single shared Perl scalar. */
+  void *key = Z_ISREF_P( zv ) ? (void *)Z_REF_P( zv ) : (void *)zv;
+
   SV *sv;
   if( ( Z_ISREF_P( zv ) || Z_TYPE_P( zv ) == IS_OBJECT || Z_TYPE_P( zv ) == IS_ARRAY ) &&
-      binary_hash_find( var_hash, zv, (void * *)&sv ) == SUCCESS ) {
+      binary_hash_find( var_hash, key, (void * *)&sv ) == SUCCESS ) {
     SvREFCNT_inc( sv );
     return sv;
   }
@@ -624,7 +628,7 @@ php_perl_zval_to_sv_ref( zval *zv, HashTable *var_hash )
   sv = php_perl_zval_to_sv_noref( zv, var_hash );
 
   if( ( Z_ISREF_P( zv ) || Z_TYPE_P( zv ) == IS_OBJECT || Z_TYPE_P( zv ) == IS_ARRAY ) )
-    binary_hash_add( var_hash, zv, sv );
+    binary_hash_add( var_hash, key, sv );
   return sv;
 } /* php_perl_zval_to_sv_ref */
 
@@ -775,7 +779,12 @@ php_perl_sv_to_zval_ref( SV *sv,
     zval *z;
     if( SvREFCNT( sv ) > 1 && binary_hash_find( var_hash, sv, (void * *)&z ) == SUCCESS ) {
       TRACE_MSG( "linking " ZEND_ADDR_FMT " to " ZEND_ADDR_FMT, (zend_ulong)zv, (zend_ulong)z );
-      ZVAL_NEW_REF( zv, z );
+      /* Alias to the previously-converted slot: wrap it in a reference in
+       * place if needed, then share that same reference, so later writes
+       * through either side stay connected. */
+      if( !Z_ISREF_P( z ) )
+        ZVAL_MAKE_REF( z );
+      ZVAL_COPY( zv, z );
       return zv;
     }
   }

@@ -55,5 +55,3 @@ array(2) {
   &int(4)
 }
 ok
---XFAIL--
-Passing references not supported.
