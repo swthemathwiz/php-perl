@@ -61,8 +61,16 @@ typedef struct DIR_W32 DIR;
 #define PHP_VERSION_GE(major,minor,release) \
         (PHP_VERSION_ID >= ((major)*10000 + (minor)*100 + (release)))
 
-#ifndef ZEND_THIS
+/* this object pointer; defined by newer Zend engines. */
+#if !defined(ZEND_THIS)
 #define ZEND_THIS (&EX(This))
+#endif
+
+/* has_property() handler has_set_exists values; defined by newer Zend engines. */
+#if !defined(ZEND_PROPERTY_ISSET)
+# define ZEND_PROPERTY_ISSET     0
+# define ZEND_PROPERTY_NOT_EMPTY 1
+# define ZEND_PROPERTY_EXISTS    2
 #endif
 
 #include "php_perl.h"
@@ -94,8 +102,8 @@ typedef struct DIR_W32 DIR;
 #define TRACE_MSG( F, ... )
 #define TRACE_SV_DUMP( SV )
 #define TRACE_ZV_DUMP( N, ZV )
-#define TRACE_PERL_OBJECT( D, O )
-#define TRACE_ZEND_OBJECT( D, O )
+#define TRACE_PERL_OBJECT( D, O ) (void)((O))
+#define TRACE_ZEND_OBJECT( D, O ) (void)((O))
 #define TRACE_ZOP( D )
 #undef  TRACE_EXPOSE_START_STOP
 #endif /* ifdef PHP_PERL_TRACE */
@@ -1734,7 +1742,7 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
     }
 
     /* property_exists() - true if sv != NULL */
-    if( has_set_exists == 2 && sv != NULL )
+    if( has_set_exists == ZEND_PROPERTY_EXISTS && sv != NULL )
       ret = 1;
   }
   else {
@@ -1747,13 +1755,13 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
       php_perl_mirror_sync( pobj, hv, member );
 #endif
 
-      if( has_set_exists < 2 ) {
+      if( has_set_exists == ZEND_PROPERTY_ISSET || has_set_exists == ZEND_PROPERTY_NOT_EMPTY ) {
         SV **prop_val = hv_fetch( hv, ZSTR_VAL( member ), ZSTR_LEN( member ), 0 );
         sv = (prop_val == NULL) ? NULL : *prop_val;
       }
 
       /* property_exists() - true if member exists */
-      if( has_set_exists == 2 && hv_exists( hv, ZSTR_VAL( member ), ZSTR_LEN( member ) ) )
+      if( has_set_exists == ZEND_PROPERTY_EXISTS && hv_exists( hv, ZSTR_VAL( member ), ZSTR_LEN( member ) ) )
         ret = 1;
     }
     else {
@@ -1763,12 +1771,12 @@ php_perl_has_property( php_perl_zop object, php_perl_zmp member_val, int has_set
   }
 
   /* If we want isset() or has(), then sv has the element to examine */
-  if( sv != NULL && has_set_exists < 2 ) {
+  if( sv != NULL && ( has_set_exists == ZEND_PROPERTY_ISSET || has_set_exists == ZEND_PROPERTY_NOT_EMPTY ) ) {
     zval zv;
     ZVAL_UNDEF( &zv );
     php_perl_sv_to_zval( sv, &zv );
     /* (isset) whether property exists and is true */
-    if( has_set_exists == 1 )
+    if( has_set_exists == ZEND_PROPERTY_NOT_EMPTY )
       ret = zend_is_true( &zv );
     /* (has) whether property exists and is not NULL */
     else
